@@ -21,19 +21,18 @@ See `example.asd` for more examples.
 
 ## Prerequisites
 
-To compile Marshall you will need:
-
-* [Ocaml](http://www.ocaml.org/), version 3.12 or later
-* [menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator
+To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 3.12 or later.
+It is highly recommended that you also get the
+[menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator.
 
 Both are available through standard packaging systems on Linux distributions, and
-on MacOS X via m[acports](http://www.macports.org/). If you embark on compiling
+on MacOS X via [macports](http://www.macports.org/). If you embark on compiling
 Ocaml on your own, consider [GODI](http://godi.camlcity.org/godi/index.html) instead.
 
 Marshall can also be compiled with the MPFR library, which makes it run faster,
 see instructions below.
 
-## How to compile
+## Compiling with ocaml and menhir
 
 Assuming you have installed the prerequisites, type
 
@@ -41,6 +40,15 @@ Assuming you have installed the prerequisites, type
 
 This will create an exectuable called `marshall_bignum.native` which you can
 run.
+
+## Compiling with ocaml without menhir
+
+If you have no menhir you can do the following
+
+    mv parser.mly parser_nomenhir.mly
+    mv parser_nomenhir.ml parser.ml
+    mv parser_nomenhir.mli parser.mli
+    ocamlbuild -lib nums marshall_bignum.native
 
 ## How to use Marshall
 
@@ -63,9 +71,8 @@ accurate.
 
 0. You need the prerequisites listed above.
 
-1. You need the usual building tools, such as subversion, make, and
-gcc. Under Microsoft Windows you can get those by installing Cygwin,
-available at http://www.cygwin.com/
+1. You need the usual building tools, such as subversion, make, and gcc. Under Microsoft
+Windows you can get those by installing [Cygwin](http://www.cygwin.com/).
 
 3. You need [camlidl](http://caml.inria.fr/camlidl/), which is available in GODI
 as well.
