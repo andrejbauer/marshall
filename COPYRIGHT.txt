@@ -1,4 +1,4 @@
-Copyright (c) 2010, Andrej Bauer
+Copyright (c) 2012, Andrej Bauer, Ivo Lah
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
