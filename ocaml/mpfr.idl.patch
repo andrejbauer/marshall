@@ -1,0 +1,28 @@
+Index: mpfr.idl
+===================================================================
+--- mpfr.idl	(revision 86)
++++ mpfr.idl	(working copy)
+@@ -88,6 +88,7 @@
+ quote(MLI,"val set_str : t -> string -> base:int -> mpfr_rnd_t -> unit")
+ quote(ML,"let set_str a b ~base round = _set_str a b base round")
+ int mpfr_set_f (mpfr_ptr X, mpf_ptr Y, mpfr_rnd_t RND);
++int mpfr_set_si_2exp (mpfr_ptr X, signed long int OP, signed long int EXPNT, mpfr_rnd_t RND);
+ void mpfr_set_inf (mpfr_ptr X, int SIGN);
+ void mpfr_set_nan (mpfr_ptr X);
+ 
+@@ -260,6 +261,15 @@
+ int mpfr_trunc (mpfr_ptr ROP, mpfr_ptr OP);
+ boolean mpfr_integer_p (mpfr_ptr OP);
+ 
++void mpfr_nexttoward (mpfr_ptr X, mpfr_ptr Y);
++void mpfr_nextabove (mpfr_ptr X);
++void mpfr_nextbelow (mpfr_ptr X);
++int mpfr_min (mpfr_ptr ROP, mpfr_ptr OP1, mpfr_ptr OP2, mpfr_rnd_t RND);
++int mpfr_max (mpfr_ptr ROP, mpfr_ptr OP1, mpfr_ptr OP2, mpfr_rnd_t RND);
++
++int mpfr_get_exp (mpfr_ptr X);
++int mpfr_set_exp (mpfr_ptr X, signed long int E);
++
+ quote(ML,"\n(** {2 Additional functions} *)\n")
+ quote(ML,"let to_string x = \n\
+ let (s,e) = get_str ~base:10 ~digits:0 x Near in \n\
