@@ -1,4 +1,4 @@
-Copyright (c) 2012, Andrej Bauer, Ivo Lah, Paul Taylor
+Copyright (c) 2012, Andrej Bauer, Ivo List, Paul Taylor
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
