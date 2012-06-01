@@ -3,14 +3,14 @@
 module Make =
   functor (D : Dyadic.DYADIC) ->
     struct
-      module S = Syntax.Syntax(D)
+      module S = Syntax.Make(D)
       open S
       open Message
-      module TC = Typecheck.Typecheck(D)
-      module E = Eval.Eval(D)
-      module ENV = Environment.Environment(D)
+      module TC = Typecheck.Make(D)
+      module E = Eval.Make(D)
+      module ENV = Environment.Make(D)
       module P = Parser.Make(D)
-      module L = Lexer.Lexer(D)
+      module L = Lexer.Make(D)
 
       (* Exception [Fatal_error] is raised when further evaluation is
 	impossible. *)

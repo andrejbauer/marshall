@@ -1,6 +1,6 @@
 %{
-    module S = Syntax.Syntax(D)
-    module I = Interval.Interval(D)
+    module S = Syntax.Make(D)
+    module I = Interval.Make(D)
 
     open S
 
@@ -24,7 +24,7 @@
 
 %token TSIGMA TREAL
 %token TTIMES TARROW
-%token <Syntax.Syntax(D).name> VAR
+%token <Syntax.Make(D).name> VAR
 %token <D.t> DYADIC
 %token <int> NATURAL
 %token <int> PROJECT
@@ -46,7 +46,7 @@
 %token END
 
 %start toplevel
-%type <Syntax.Syntax(D).toplevel_cmd list> toplevel
+%type <Syntax.Make(D).toplevel_cmd list> toplevel
 
 %nonassoc SEMICOLON2
 %right TARROW

@@ -1,37 +1,36 @@
 {
-module Lexer =
-  functor (D : Dyadic.DYADIC) ->
-    struct
-      module S = Syntax.Syntax(D)
-      module P = Parser.Make(D)
-      open P
-      open Lexing
+module Make = functor (D : Dyadic.DYADIC) ->
+struct
+  module S = Syntax.Make(D)
+  module P = Parser.Make(D)
+  open P
+  open Lexing
 
-      let incr_linenum lexbuf =
-	let pos = lexbuf.lex_curr_p in
-	  lexbuf.lex_curr_p <-
-	    { pos with
-		pos_lnum = pos.pos_lnum + 1;
-		pos_bol = pos.pos_cnum;
-	    }
-
-      let reserved_words = [
-	"cut", CUT;
-	"exists", EXISTS;
-	"exp", EXP;
-	"False", FALSE;
-	"forall", FORALL;
-	"fun", FUN;
-	"in", IN;
-	"inf", INFINITY;
-	"inv", INVERSE;
-	"left", LEFT;
-	"let", LET;
-	"prop", TSIGMA;
-	"real", TREAL;
-	"right", RIGHT;
-	"True", TRUE
-      ]
+  let incr_linenum lexbuf =
+    let pos = lexbuf.lex_curr_p in
+      lexbuf.lex_curr_p <-
+	{ pos with
+	    pos_lnum = pos.pos_lnum + 1;
+	    pos_bol = pos.pos_cnum;
+	}
+        
+  let reserved_words = [
+    "cut", CUT;
+    "exists", EXISTS;
+    "exp", EXP;
+    "False", FALSE;
+    "forall", FORALL;
+    "fun", FUN;
+    "in", IN;
+    "inf", INFINITY;
+    "inv", INVERSE;
+    "left", LEFT;
+    "let", LET;
+    "prop", TSIGMA;
+    "real", TREAL;
+    "right", RIGHT;
+    "True", TRUE
+  ]
 }
 
 let var = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* '\''*
@@ -92,5 +91,5 @@ rule token = parse
   | ';'			 { END }
 
 {
-    end;;
+end
 }
