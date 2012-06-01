@@ -567,6 +567,8 @@ BUILDBEST
 ac_ct_WRAPPER
 WRAPPER
 OCAMLMENHIR
+OCAMLMINOR
+OCAMLMAJOR
 OCAMLBUILD
 OCAMLDOC
 OCAMLMKLIB
@@ -3233,6 +3235,16 @@ if test "$OCAMLBUILD" = "no"; then
   as_fn_error $? "You must install OCaml with ocamlbuild utility" "$LINENO" 5
 fi
 
+OCAMLMAJOR=`echo $OCAMLVERSION | cut -d. -f1`
+
+
+OCAMLMINOR=`echo $OCAMLVERSION | cut -d. -f2`
+
+
+if test \( "$OCAMLMAJOR" -lt "3" \) -o \( "$OCAMLMAJOR" = "3" -a "$OCAMLMINOR" -lt "12" \) ; then
+   as_fn_error $? "Ocaml version 3.12 or higher required" "$LINENO" 5
+fi
+
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}menhir", so it can be a program name with args.
 set dummy ${ac_tool_prefix}menhir; ac_word=$2
@@ -3326,7 +3338,7 @@ else
 fi
 
 if test "$OCAMLMENHIR" = "no"; then
-  as_fn_error $? "You must install the Ocaml menhir parser generator" "$LINENO" 5
+    as_fn_error $? "You must install the Ocaml menhir parser generator" "$LINENO" 5
 fi
 
 if test -n "$ac_tool_prefix"; then
@@ -3433,8 +3445,8 @@ fi
 
 
 if test "$WRAPPER" = "no"; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No line-editing wrapper found" >&5
-$as_echo "$as_me: WARNING: No line-editing wrapper found" >&2;}
+   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No line-editing wrapper found, we recommend rlwrap or ledit." >&5
+$as_echo "$as_me: WARNING: No line-editing wrapper found, we recommend rlwrap or ledit." >&2;}
 fi
 
 if test "$OCAMLBEST" = "opt"; then
