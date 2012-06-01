@@ -4,9 +4,8 @@ module Make = functor (D : Dyadic.DYADIC) ->
 struct
 
   module I = Interval.Make(D)
-  module E = Environment.Make(D)
+  module Env = Environment.Make(D)
   module S = Syntax.Make(D)
-  open S
 
   let error = Message.runtime_error
 
@@ -30,22 +29,22 @@ struct
   (* Get the interval approximation of a simple numerical expression. *)
 
   let get_interval = function
-    | Interval i -> i
-    | Dyadic q -> I.of_dyadic q
-    | Cut (_, i, _, _) -> i
-    | e -> error ("Numerical constant expected but got " ^ string_of_expr e)
+    | S.Interval i -> i
+    | S.Dyadic q -> I.of_dyadic q
+    | S.Cut (_, i, _, _) -> i
+    | e -> error ("Numerical constant expected but got " ^ S.string_of_expr e)
 
   (* Get the bound variable and the matrix of an abstraction. *)
 
   let get_lambda = function
-    | Lambda (x, _, e) -> x, e
+    | S.Lambda (x, _, e) -> x, e
     | _ -> error "Function expected"
 
   (* Project from a tuple. *)
 
   let proj e k =
     match e with
-      | Tuple lst ->
+      | S.Tuple lst ->
 	  (try
 	     List.nth lst k
 	   with Failure _ -> error "Tuple too short")
@@ -57,18 +56,18 @@ struct
 
   let bin_apply ~prec ~round op i1 i2 =
     match op with
-      | Plus -> I.add ~prec ~round i1 i2
-      | Minus -> I.sub ~prec ~round i1 i2
-      | Times -> I.mul ~prec ~round i1 i2
-      | Quotient -> I.div ~prec ~round i1 i2
+      | S.Plus -> I.add ~prec ~round i1 i2
+      | S.Minus -> I.sub ~prec ~round i1 i2
+      | S.Times -> I.mul ~prec ~round i1 i2
+      | S.Quotient -> I.div ~prec ~round i1 i2
 
   (* Apply a unary operator, see [bin_apply] for explanation of [prec]
      and [round]. *)
 
   let unary_apply ~prec ~round op i =
     match op with
-      | Opposite -> I.neg ~prec ~round i
-      | Inverse -> I.inv ~prec ~round i
+      | S.Opposite -> I.neg ~prec ~round i
+      | S.Inverse -> I.inv ~prec ~round i
 	  (*| Exp -> I.exp ~prec ~round i*)
 
   (* [Break] is used to shortcircuit evaluation of conjunctions and
@@ -85,15 +84,15 @@ struct
       | [] -> acc
       | p::ps ->
 	  (match f p with
-	     | True -> fold acc ps
-	     | False -> raise Break
+	     | S.True -> fold acc ps
+	     | S.False -> raise Break
 	     | q -> fold (q::acc) ps)
     in
       try
 	match fold [] lst with
-	  | [] -> True
-	  | lst -> And (List.rev lst)
-      with Break -> False
+	  | [] -> S.True
+	  | lst -> S.And (List.rev lst)
+      with Break -> S.False
 
   (* [fold_or f [x1,...,xn]] constructs the disjunction [Or [f x1;
      ..., f xn]]. It throws out [False]'s and shortcircuits on
@@ -104,15 +103,15 @@ struct
       | [] -> acc
       | p::ps ->
 	  (match f p with
-	     | True -> raise Break
-	     | False -> fold acc ps
+	     | S.True -> raise Break
+	     | S.False -> fold acc ps
 	     | q -> fold (q::acc) ps)
     in
       try
 	match fold [] lst with
-	  | [] -> False
-	  | lst -> Or (List.rev lst)
-      with Break -> True
+	  | [] -> S.False
+	  | lst -> S.Or (List.rev lst)
+      with Break -> S.True
 
   (* [make_exists x i p] constructs the existential quantifier [Exists (x,i,p)]
      over an inhabited interval [i]. If [p] is [True] or [False] it shortcircuits
@@ -120,12 +119,12 @@ struct
 
   let make_exists x i p =
     assert (I.forward i) ;
-    if p = True then
-      True
-    else if p = False then
-      False
+    if p = S.True then
+      S.True
+    else if p = S.False then
+      S.False
     else
-      Exists (x, i, p)
+      S.Exists (x, i, p)
 
   (* [make_forall x i p] constructs the universal quantifier [Forall (x,i,p)]
      over an inhabited interval [i]. If [p] is [True] or [False] it shortcircuits
@@ -133,12 +132,12 @@ struct
 
   let make_forall x i p =
     assert (I.forward i) ;
-    if p = True then
-      True
-    else if p = False then
-      False
+    if p = S.True then
+      S.True
+    else if p = S.False then
+      S.False
     else
-      Forall (x, i, p)
+      S.Forall (x, i, p)
 
   (* \subsection{Approximants} *)
 
@@ -147,50 +146,50 @@ struct
      [prec]. *)
 
   let string_of_env env =
-    String.concat "\n" (List.map (fun (x,v) -> string_of_name x ^ "=" ^ string_of_expr v) env)
+    String.concat "\n" (List.map (fun (x,v) -> S.string_of_name x ^ "=" ^ S.string_of_expr v) env)
 
   let rec lower prec env e =
     let approx = lower prec env in
       match e with
-	| Var x -> approx (E.get x env)
-	| RealVar (_, i) -> Interval i
-	| Dyadic q -> Interval (I.of_dyadic q)
-	| Interval _ as e -> e
-	| Cut (_, i, _, _) -> Interval i
-	| Binary (op, e1, e2) ->
+	| S.Var x -> approx (Env.get x env)
+	| S.RealVar (_, i) -> S.Interval i
+	| S.Dyadic q -> S.Interval (I.of_dyadic q)
+	| S.Interval _ as e -> e
+	| S.Cut (_, i, _, _) -> S.Interval i
+	| S.Binary (op, e1, e2) ->
 	    let i1 = get_interval (approx e1) in
 	    let i2 = get_interval (approx e2) in
-	      Interval (bin_apply ~prec ~round:D.down op i1 i2)
-	| Unary (op, e) ->
+	      S.Interval (bin_apply ~prec ~round:D.down op i1 i2)
+	| S.Unary (op, e) ->
 	    let i = get_interval (approx e) in
-	      Interval (unary_apply ~prec ~round:D.down op i)
-	| Power (e, k) ->
+	      S.Interval (unary_apply ~prec ~round:D.down op i)
+	| S.Power (e, k) ->
 	    let i = get_interval (approx e) in
-	      Interval (I.pow ~prec ~round:D.down i k)
-	| True -> True
-	| False -> False
-	| Less (e1, e2) ->
+	      S.Interval (I.pow ~prec ~round:D.down i k)
+	| S.True -> S.True
+	| S.False -> S.False
+	| S.Less (e1, e2) ->
 	    let i1 = get_interval (approx e1) in
 	    let i2 = get_interval (approx e2) in
 	      if D.lt (I.upper i1) (I.lower i2) then
-		True
+		S.True
 	      else
-		False
-	| And lst -> fold_and approx lst
-	| Or lst -> fold_or approx lst
-	| Exists (x, s, e) ->
-	    let m = Dyadic (I.midpoint prec 1 s) in
-	      lower prec (E.extend x m env) e
-	| Forall (x, i, e) ->
-	    lower prec (E.extend x (Interval i) env) e
-	| Let (x, e1, e2) ->
-	    lower prec (E.extend x (approx e1) env) e2
-	| Tuple _ as e -> e
-	| Proj (e, k) -> proj (approx e) k
-	| Lambda _ as e -> e
-	| App (e1, e2) ->
+		S.False
+	| S.And lst -> fold_and approx lst
+	| S.Or lst -> fold_or approx lst
+	| S.Exists (x, s, e) ->
+	    let m = S.Dyadic (I.midpoint prec 1 s) in
+	      lower prec (Env.extend x m env) e
+	| S.Forall (x, i, e) ->
+	    lower prec (Env.extend x (S.Interval i) env) e
+	| S.Let (x, e1, e2) ->
+	    lower prec (Env.extend x (approx e1) env) e2
+	| S.Tuple _ as e -> e
+	| S.Proj (e, k) -> proj (approx e) k
+	| S.Lambda _ as e -> e
+	| S.App (e1, e2) ->
 	    let x, e = get_lambda (approx e1) in
-	      lower prec (E.extend x (approx e2) env) e
+	      lower prec (Env.extend x (approx e2) env) e
 
 
   (* Function [upper prec env e] computes the upper approximant of [e]
@@ -200,46 +199,46 @@ struct
   let rec upper prec env e =
     let approx = upper prec env in
       match e with
-	| Var x -> approx (E.get x env)
-	| RealVar (_, i) -> Interval (I.flip i)
-	| Dyadic q -> Interval (I.of_dyadic q)
-	| Interval _ as e -> e
-	| Cut (_, i, _, _) -> Interval (I.flip i)
-	| Binary (op, e1, e2) ->
+	| S.Var x -> approx (Env.get x env)
+	| S.RealVar (_, i) -> S.Interval (I.flip i)
+	| S.Dyadic q -> S.Interval (I.of_dyadic q)
+	| S.Interval _ as e -> e
+	| S.Cut (_, i, _, _) -> S.Interval (I.flip i)
+	| S.Binary (op, e1, e2) ->
 	    let i1 = get_interval (approx e1) in
 	    let i2 = get_interval (approx e2) in
-	      Interval (bin_apply ~prec ~round:D.up op i1 i2)
-	| Unary (op, e) ->
+	      S.Interval (bin_apply ~prec ~round:D.up op i1 i2)
+	| S.Unary (op, e) ->
 	    let i = get_interval (approx e) in
-	      Interval (unary_apply ~prec ~round:D.up op i)
-	| Power (e, k) ->
+	      S.Interval (unary_apply ~prec ~round:D.up op i)
+	| S.Power (e, k) ->
 	    let i = get_interval (approx e) in
-	      Interval (I.pow ~prec ~round:D.up i k)
-	| True -> True
-	| False -> False
-	| Less (e1, e2) ->
+	      S.Interval (I.pow ~prec ~round:D.up i k)
+	| S.True -> S.True
+	| S.False -> S.False
+	| S.Less (e1, e2) ->
 	    let i1 = get_interval (approx e1) in
 	    let i2 = get_interval (approx e2) in
 	      if D.lt (I.upper i1) (I.lower i2) then
-		True
+		S.True
 	      else
-		False
-	| And lst -> fold_and approx lst
-	| Or lst -> fold_or approx lst
-	| Exists (x, i, e) ->
+		S.False
+	| S.And lst -> fold_and approx lst
+	| S.Or lst -> fold_or approx lst
+	| S.Exists (x, i, e) ->
 	    let j = I.flip i in
-	      upper prec (E.extend x (Interval j) env) e
-	| Forall (x, i, e) ->
-	    let m = Dyadic (I.midpoint prec 1 i) in
-	      upper prec (E.extend x m env) e
-	| Let (x, e1, e2) ->
-	    upper prec (E.extend x e1 env) e2
-	| Tuple _ as e -> e
-	| Proj (e, k) -> proj (approx e) k
-	| Lambda _ as e -> e
-	| App (e1, e2) ->
+	      upper prec (Env.extend x (S.Interval j) env) e
+	| S.Forall (x, i, e) ->
+	    let m = S.Dyadic (I.midpoint prec 1 i) in
+	      upper prec (Env.extend x m env) e
+	| S.Let (x, e1, e2) ->
+	    upper prec (Env.extend x e1 env) e2
+	| S.Tuple _ as e -> e
+	| S.Proj (e, k) -> proj (approx e) k
+	| S.Lambda _ as e -> e
+	| S.App (e1, e2) ->
 	    let x, e = get_lambda (approx e1) in
-	      upper prec (E.extend x (approx e2) env) e
+	      upper prec (Env.extend x (approx e2) env) e
 
   (* \subsection{Evaluation} *)
 
@@ -262,37 +261,37 @@ struct
   let rec hnf ?(free=false) env e =
     let hnf = hnf ~free in
       match e with
-	| Var x ->
+	| S.Var x ->
 	    (try
 	       List.assoc x env
 	     with Not_found ->
-	       if free then Var x else error ("Unknown variable " ^ string_of_name x))
-	| (RealVar _ | Dyadic _ | Interval _ | True | False) as e -> e
-	| Cut (x, i, p1, p2) -> 
-	    let env' = E.extend x (Var x) env in
-	      Cut (x, i, hnf env' p1, hnf env' p2)
-	| Binary (op, e1, e2) -> Binary (op, hnf env e1, hnf env e2)
-	| Unary (op, e) -> Unary (op, hnf env e)
-	| Power (e, k) -> Power (hnf env e, k)
-	| Proj (e, k) -> 
+	       if free then S.Var x else error ("Unknown variable " ^ S.string_of_name x))
+	| (S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False) as e -> e
+	| S.Cut (x, i, p1, p2) -> 
+	    let env' = Env.extend x (S.Var x) env in
+	      S.Cut (x, i, hnf env' p1, hnf env' p2)
+	| S.Binary (op, e1, e2) -> S.Binary (op, hnf env e1, hnf env e2)
+	| S.Unary (op, e) -> S.Unary (op, hnf env e)
+	| S.Power (e, k) -> S.Power (hnf env e, k)
+	| S.Proj (e, k) -> 
 	    (match hnf env e with
-	       | Tuple _ as e' -> proj e' k
-	       | e' -> Proj (e', k))
-	| Less (e1, e2) -> Less (hnf env e1, hnf env e2)
-	| And lst -> And (List.map (hnf env) lst)
-	| Or lst -> Or (List.map (hnf env) lst)
-	| Tuple lst -> Tuple (List.map (hnf env) lst)
-	| Lambda (x, ty, e) -> Lambda (x, ty, hnf (E.extend x (Var x) env) e)
-	| Exists (x, i, e) -> Exists (x, i, hnf (E.extend x (Var x) env) e)
-	| Forall (x, i, e) -> Forall (x, i, hnf (E.extend x (Var x) env) e)
-	| App (e1, e2)  ->
+	       | S.Tuple _ as e' -> proj e' k
+	       | e' -> S.Proj (e', k))
+	| S.Less (e1, e2) -> S.Less (hnf env e1, hnf env e2)
+	| S.And lst -> S.And (List.map (hnf env) lst)
+	| S.Or lst -> S.Or (List.map (hnf env) lst)
+	| S.Tuple lst -> S.Tuple (List.map (hnf env) lst)
+	| S.Lambda (x, ty, e) -> S.Lambda (x, ty, hnf (Env.extend x (S.Var x) env) e)
+	| S.Exists (x, i, e) -> S.Exists (x, i, hnf (Env.extend x (S.Var x) env) e)
+	| S.Forall (x, i, e) -> S.Forall (x, i, hnf (Env.extend x (S.Var x) env) e)
+	| S.App (e1, e2)  ->
 	    let e2' = hnf env e2 in
 	      (match hnf env e1 with
-		 | Lambda (x, ty, e) -> hnf (E.extend x e2' env) e
-		 | e1' -> App (e1', e2'))
-	| Let (x, e1, e2) -> 
+		 | S.Lambda (x, ty, e) -> hnf (Env.extend x e2' env) e
+		 | e1' -> S.App (e1', e2'))
+	| S.Let (x, e1, e2) -> 
 	    let e1' = hnf env e1 in
-	      hnf (E.extend x e1' env) e2
+	      hnf (Env.extend x e1' env) e2
 
   (* The function [refine k prec env e] performs one step of evaluation
      of expression [e] in environment [env], using precision [prec] to
@@ -308,15 +307,15 @@ struct
 
   let rec refine k prec env e =
     let refn = refine k prec env in
-      if lower prec env e = True then True
-      else if upper prec env e = False then False
+      if lower prec env e = S.True then S.True
+      else if upper prec env e = S.False then S.False
       else
 	match e with
-	  | Var x -> refine k prec env (E.get x env)
-	  | RealVar (x, _) -> Var x
-	  | Dyadic _ -> e
-	  | Interval _ -> e
-	  | Cut (x, i, p1, p2) -> begin
+	  | S.Var x -> refine k prec env (Env.get x env)
+	  | S.RealVar (x, _) -> S.Var x
+	  | S.Dyadic _ -> e
+	  | S.Interval _ -> e
+	  | S.Cut (x, i, p1, p2) -> begin
 	      let prec = make_prec prec i in
 		(* To refine a cut [Cut(x,i,p1,p2)] we try to make the
 		   interval [i] smaller and refine [p1] and [p2]. *)
@@ -324,20 +323,20 @@ struct
 	      let b = I.upper i in
 		(* Bisection *)
 	      let m1, m2 = I.thirds prec k i in
-	      let a' = (if lower prec (E.extend x (Dyadic m1) env) p1 = True then m1 else a) in
-	      let b' = (if lower prec (E.extend x (Dyadic m2) env) p2 = True then m2 else b) in
+	      let a' = (if lower prec (Env.extend x (S.Dyadic m1) env) p1 = S.True then m1 else a) in
+	      let b' = (if lower prec (Env.extend x (S.Dyadic m2) env) p2 = S.True then m2 else b) in
 		(* Newton's method would come. See revision 259 (for a faulty version). *)
 		match D.cmp a' b' with
 		  | `less ->
 		      (* The new interval *)
 		      let j = I.make a' b' in
-		      let env' = E.extend x (RealVar (x, j)) env in
+		      let env' = Env.extend x (S.RealVar (x, j)) env in
 		      let q1 = refine k prec env' p1 in
 		      let q2 = refine k prec env' p2 in
-			Cut (x, j, q1, q2)
+			S.Cut (x, j, q1, q2)
 		  | `equal ->
 		      (* We found an exact value *)
-		      Dyadic a'
+		      S.Dyadic a'
 		  | `greater ->
 		      (* We have a backwards cut. Do nothing. Someone should think
 			 whether this is ok. It would be nice if cuts could be
@@ -346,42 +345,42 @@ struct
 		      *)
 		      e
 	    end
-	  | Binary (op, e1, e2) -> Binary (op, refn e1, refn e2)
-	  | Unary (op, e) -> Unary (op, refn e)
-	  | Power (e, k) -> Power (refn e, k)
-	  | True -> True
-	  | False -> False
-	  | Less (e1, e2) -> Less (refn e1, refn e2)
-	  | And lst -> fold_and refn lst
-	  | Or lst -> fold_or refn lst
-	  | Exists (x, i, p) ->
+	  | S.Binary (op, e1, e2) -> S.Binary (op, refn e1, refn e2)
+	  | S.Unary (op, e) -> S.Unary (op, refn e)
+	  | S.Power (e, k) -> S.Power (refn e, k)
+	  | S.True -> S.True
+	  | S.False -> S.False
+	  | S.Less (e1, e2) -> S.Less (refn e1, refn e2)
+	  | S.And lst -> fold_and refn lst
+	  | S.Or lst -> fold_or refn lst
+	  | S.Exists (x, i, p) ->
 	      let prec = make_prec prec i in
-	      let q = refine k prec (E.extend x (RealVar (x, i)) env) p in
+	      let q = refine k prec (Env.extend x (S.RealVar (x, i)) env) p in
 	      let i1, i2 = I.split prec 1 i in
 		(* We could use Newton's method here. See revision 259. *)
 		fold_or (fun i -> make_exists x i q) [i1; i2]
 
-	  | Forall (x, i, p) ->
+	  | S.Forall (x, i, p) ->
 	      let prec = make_prec prec i in
-	      let q = refine k prec (E.extend x (RealVar (x, i)) env) p in
+	      let q = refine k prec (Env.extend x (S.RealVar (x, i)) env) p in
 	      let i1, i2 = I.split prec 1 i in
 		(* We could use Newton's method here. See revision 259. *)
 		fold_and (fun i -> make_forall x i q) [i1; i2]
-	  | Let (x, e1, e2) ->
-	      refine k prec (E.extend x (refn e1) env) e2
-	  | Tuple _ -> e
-	  | Proj (e, k) ->
+	  | S.Let (x, e1, e2) ->
+	      refine k prec (Env.extend x (refn e1) env) e2
+	  | S.Tuple _ -> e
+	  | S.Proj (e, k) ->
 	      (match refn e with
-		 | Tuple lst ->
+		 | S.Tuple lst ->
 		     (try
 			refn (List.nth lst k)
 		      with Failure _ -> error "Tuple too short")
-		 | e -> Proj (e, k))
-	  | Lambda _ -> e
-	  | App (e1, e2) ->
+		 | e -> S.Proj (e, k))
+	  | S.Lambda _ -> e
+	  | S.App (e1, e2) ->
 	      (match refn e1 with
-		 | Lambda (x, _, e) -> refine k prec (E.extend x (refn e2) env) e
-		 | e -> App (e, e2))
+		 | S.Lambda (x, _, e) -> refine k prec (Env.extend x (refn e2) env) e
+		 | e -> S.App (e, e2))
 
   (* [eval prec env e] evaluates expression [e] in environment [env] by
      repeatedly calling [refine]. It increases precision at each step,
@@ -396,27 +395,27 @@ struct
 	begin
 	  print_endline ("--------------------------------------------------\n" ^
 			   "Iteration: " ^ string_of_int k ^ "\n" ^
-			   string_of_expr e ^ "\n" ^
+			   S.string_of_expr e ^ "\n" ^
 			   "Press Enter to continue " 
 			) ;
 	  ignore (read_line ())	  
 	end ;
       match e with
-	| Var _ | RealVar _
-	| Less _ | And _ | Or _ | Exists _ | Forall _
-	| Let _ | Proj _ | App _ ->
+	| S.Var _ | S.RealVar _
+	| S.Less _ | S.And _ | S.Or _ | S.Exists _ | S.Forall _
+	| S.Let _ | S.Proj _ | S.App _ ->
 	    loop (k+1) (p+1) (refine k p env e)
-	| Binary _ | Unary _ | Power _ | Cut _ ->
+	| S.Binary _ | S.Unary _ | S.Power _ | S.Cut _ ->
 	    (match lower p env e with
-	       | Interval i ->
+	       | S.Interval i ->
 		   let w = (I.width 10 D.up i) in
 		     if D.lt w !target_precision then
-		       (e, Interval i)
+		       (e, S.Interval i)
 		     else
 		       loop (k+1) (make_prec (p+3) (I.make D.zero !target_precision)) (refine k p env e)
 	       | _ -> assert false)
-	| Dyadic _ | Interval _ | True | False | Lambda _ -> (e, e)
-	| Tuple lst -> 
+	| S.Dyadic _ | S.Interval _ | S.True | S.False | S.Lambda _ -> (e, e)
+	| S.Tuple lst -> 
 	    let lst1, lst2 =
 	      List.fold_left
 		(fun (lst1, lst2) e ->
@@ -425,7 +424,7 @@ struct
 		([], [])
 		lst
 	    in
-	      (Tuple lst1, Tuple lst2)
+	      (S.Tuple lst1, S.Tuple lst2)
     in
       loop 1 prec (hnf env e)
 end;;
