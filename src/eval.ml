@@ -1,5 +1,3 @@
-(* \section{Evaluation (module [Eval])} *)
-
 module Make = functor (D : Dyadic.DYADIC) ->
 struct
 
@@ -382,14 +380,13 @@ struct
 		 | S.Lambda (x, _, e) -> refine k prec (Env.extend x (refn e2) env) e
 		 | e -> S.App (e, e2))
 
-  (* [eval prec env e] evaluates expression [e] in environment [env] by
-     repeatedly calling [refine]. It increases precision at each step,
-     although we should do something more intelligent about that (not
-     all subexpressions of [e] need the same precision). The argument
-     [trace] determines whether debugging information should be printed
-     out. *)
-
-  let eval trace prec env e =
+  (** [eval prec env e] evaluates expression [e] in environment [env] by
+      repeatedly calling [refine]. It increases precision at each step,
+      although we should do something more intelligent about that (not
+      all subexpressions of [e] need the same precision). The argument
+      [trace] determines whether debugging information should be printed
+      out. *)
+  let eval trace env e =
     let rec loop k p e =
       if trace then
 	begin
@@ -426,6 +423,6 @@ struct
 	    in
 	      (S.Tuple lst1, S.Tuple lst2)
     in
-      loop 1 prec (hnf env e)
+      loop 1 32 (hnf env e)
 end;;
 

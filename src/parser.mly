@@ -2,28 +2,26 @@
     module S = Syntax.Make(D)
     module I = Interval.Make(D)
 
-    open S
-
     let equal r e1 e2 =
-      let x = fresh_name () in
-      let y = fresh_name () in
-      let d = Binary (Minus, e1, e2) in
-	Let (y, r,
-	    Let (x, d,
-		  And [Less (Unary (Opposite, Var y), Var x); Less (Var x, Var y)]))
+      let x = S.fresh_name () in
+      let y = S.fresh_name () in
+      let d = S.Binary (S.Minus, e1, e2) in
+	S.Let (y, r,
+	    S.Let (x, d,
+		  S.And [S.Less (S.Unary (S.Opposite, S.Var y), S.Var x); S.Less (S.Var x, S.Var y)]))
 
     let apart e1 e2 =
-      let x = fresh_name () in
-      let y = fresh_name () in
-	Let (x, e1,
-	    Let (y, e2,
-		  Or [Less (Var x, Var y); Less (Var y, Var x)]))
+      let x = S.fresh_name () in
+      let y = S.fresh_name () in
+	S.Let (x, e1,
+	    S.Let (y, e2,
+		  S.Or [S.Less (S.Var x, S.Var y); S.Less (S.Var y, S.Var x)]))
 %}
 
 %parameter <D : Dyadic.DYADIC>
 
 %token TSIGMA TREAL
-%token TTIMES TARROW
+%token TARROW
 %token <Syntax.Make(D).name> VAR
 %token <D.t> DYADIC
 %token <int> NATURAL
@@ -35,151 +33,229 @@
 %token LET IN
 %token CUT LEFT RIGHT
 %token FUN DARROW
-%token PLUS MINUS TIMES QUOTIENT INVERSE UMINUS POWER EXP
+%token PLUS MINUS TIMES QUOTIENT INVERSE POWER
 %token EQUAL LESS GREATER UNEQUAL
-%token COLON COMMA PERIOD SEMICOLON2
+%token COLON COMMA SEMISEMI
 %token LPAREN RPAREN
 %token LBRACK RBRACK LBRACE RBRACE
-%token USE QUIT TRACE PRECISION HNF
+%token USE QUIT TRACE PRECISION HNF HELP
 %token <string> STRING
 %token EOF
-%token END
 
-%start toplevel
-%type <Syntax.Make(D).toplevel_cmd list> toplevel
+%start <Syntax.Make(D).toplevel_cmd list> file
+%start <Syntax.Make(D).toplevel_cmd> commandline
 
-%nonassoc SEMICOLON2
 %right TARROW
-%right TTIMES
-%nonassoc COMMA
-%nonassoc FUN DARROW
-%nonassoc CUT LEFT RIGHT
-%nonassoc EXISTS FORALL LET IN
-%left OR
-%left AND
 %nonassoc EQUAL LESS GREATER UNEQUAL
 %left PLUS MINUS
 %left TIMES QUOTIENT
-%nonassoc UMINUS
-%nonassoc INVERSE EXP
-%left POWER
-%left COLON
 
 %%
 
-toplevel:
-  | EOF                             { [] }
-  | command EOF                     { [$1] }
-  | command SEMICOLON2 toplevel EOF { $1 :: $3 }
+(* Toplevel syntax *)
 
-command:
-  | pragma                     { $1 }
-  | expr                       { Expr ($1, false) }
-  | letdef                     { $1 }
+(* If you're going to "optimize" this, please make sure we don't require ;; at the
+   end of the file. *)
+file:
+  | lst = file_topdef
+    { lst }
+  | t = expr EOF
+     { [(S.Expr (t, false))] }
+  | t = expr SEMISEMI lst = file
+     { (S.Expr (t, false)) :: lst }
+  | dir = topdirective EOF
+     { [dir] }
+  | dir = topdirective SEMISEMI lst = file
+     { dir :: lst }
 
-pragma:
-  | USE STRING EOF             { Use $2 }
-  | TRACE expr                 { Expr ($2, true) }
-  | PRECISION numconst         { Precision $2 }
-  | HNF expr                   { Hnf $2 }
-  | QUIT                       { Quit }
+file_topdef:
+  | EOF
+     { [] }
+  | def = topdef SEMISEMI lst = file
+     { def :: lst }
+  | def = topdef lst = file_topdef
+     { def :: lst }
 
-letdef:
-  | LET VAR EQUAL expr       { Definition ($2, $4) }
+commandline:
+  | t = expr SEMISEMI
+    { S.Expr (t, false) }
+  | def = topdef SEMISEMI
+    { def }
+  | dir = topdirective SEMISEMI
+    { dir }
 
+(* Things that can be defined at toplevel. *)
+topdef:
+  | LET x = VAR EQUAL e = expr       { S.Definition (x, e) }
+
+(* Toplevel directives. *)
+topdirective:
+  | USE s = STRING
+    { S.Use s }
+  | TRACE e = expr
+    { S.Expr (e, true) }
+  | PRECISION n = numconst
+    { S.Precision n }
+  | HNF e = expr
+    { S.Hnf e }
+  | HELP
+    { S.Help }
+  | QUIT
+    { S.Quit }
+
+(* Main syntax tree. *)
 expr:
-  | or_expr                         { $1 }
-  | CUT VAR COLON segment LEFT expr RIGHT expr { Cut ($2, $4, $6, $8) }
-  | CUT VAR LEFT expr RIGHT expr    { Cut ($2, I.bottom, $4, $6) }
-  | EXISTS VAR COLON segment COMMA expr  { Exists ($2, $4, $6) }
-  | FORALL VAR COLON segment COMMA expr  { Forall ($2, $4, $6) }
-  | LET VAR EQUAL expr IN expr      { Let ($2, $4, $6) }
-  | FUN VAR COLON ty DARROW expr    { Lambda ($2, $4, $6) }
+  | e = or_expr
+    { e }
+  | CUT x = VAR COLON s = segment LEFT e1 = expr RIGHT e2 = expr
+    { S.Cut (x, s, e1, e2) }
+  | CUT x = VAR LEFT e1 = expr RIGHT e2 = expr
+    { S.Cut (x, I.bottom, e1, e2) }
+  | EXISTS x = VAR COLON s = segment COMMA e = expr
+    { S.Exists (x, s, e) }
+  | FORALL x = VAR COLON s = segment COMMA e = expr
+    { S.Forall (x, s, e) }
+  | LET x = VAR EQUAL e1 = expr IN e2 = expr
+    { S.Let (x, e1, e2) }
+  | FUN x = VAR COLON t = ty DARROW e = expr
+    { S.Lambda (x, t, e) }
 
 simple_expr:
-  | VAR                             { Var $1 }
-  | NATURAL                         { Dyadic (D.of_int ~round:D.down $1) }
-  | DYADIC                          { Dyadic $1 }
-  | TRUE                            { True }
-  | FALSE                           { False }
-  | simple_expr PROJECT             { Proj ($1, $2) }
-  | LPAREN expr RPAREN              { $2 }
-  | LPAREN expr_list RPAREN         { Tuple $2 }
+  | x = VAR
+    { S.Var x }
+  | n = NATURAL
+    { S.Dyadic (D.of_int ~round:D.down n) }
+  | q = DYADIC
+    { S.Dyadic q }
+  | TRUE
+    { S.True }
+  | FALSE
+    { S.False }
+  | e = simple_expr p = PROJECT 
+    { S.Proj (e, p) }
+  | LPAREN e = expr RPAREN
+    { e }
+  | LPAREN es = expr_list RPAREN
+    { S.Tuple es }
 
 apply_expr:
-  | apply_expr simple_expr          { App ($1, $2) }
-  | simple_expr                     { $1 }
+  | e1 = apply_expr e2 = simple_expr
+    { S.App (e1, e2) }
+  | e = simple_expr
+    { e }
 
 pow_expr:
-  | apply_expr                      { $1 }
-  | pow_expr POWER NATURAL          { Power ($1, $3) }
+  | e = apply_expr
+    { e }
+  | e = pow_expr POWER n = NATURAL
+    { S.Power (e, n) }
 
 unary_expr:
-  | pow_expr                        { $1 }
-  | MINUS pow_expr %prec UMINUS     { Unary (Opposite, $2) }
-  | INVERSE pow_expr                { Unary (Inverse, $2) }
+  | e = pow_expr
+    { e }
+  | MINUS e = pow_expr
+    { S.Unary (S.Opposite, e) }
+  | INVERSE e = pow_expr
+    { S.Unary (S.Inverse, e) }
 
 bin_expr:
-  | unary_expr                      { $1 }
-  | bin_expr PLUS bin_expr          { Binary (Plus, $1, $3) }
-  | bin_expr MINUS bin_expr         { Binary (Minus, $1, $3) } 
-  | bin_expr TIMES bin_expr         { Binary (Times, $1, $3) }
-  | bin_expr QUOTIENT bin_expr      { Binary (Quotient, $1, $3) }
-  | bin_expr EQUAL LBRACE expr RBRACE EQUAL bin_expr { equal $4 $1 $7 }
-  | bin_expr UNEQUAL bin_expr       { apart $1 $3 }
-  | bin_expr LESS bin_expr          { Less ($1, $3) }
-  | bin_expr GREATER bin_expr       { Less ($3, $1) }
+  | e = unary_expr
+    { e }
+  | e1 = bin_expr PLUS e2 = bin_expr
+    { S.Binary (S.Plus, e1, e2) }
+  | e1 = bin_expr MINUS e2 = bin_expr
+    { S.Binary (S.Minus, e1, e2) } 
+  | e1 = bin_expr TIMES e2 = bin_expr
+    { S.Binary (S.Times, e1, e2) }
+  | e1 = bin_expr QUOTIENT e2 = bin_expr
+    { S.Binary (S.Quotient, e1, e2) }
+  | e1 = bin_expr EQUAL LBRACE r = expr RBRACE EQUAL e2 = bin_expr
+    { equal r e1 e2 }
+  | e1 = bin_expr UNEQUAL e2 = bin_expr
+    { apart e1 e2 }
+  | e1 = bin_expr LESS e2 = bin_expr  
+    { S.Less (e1, e2) }
+  | e1 = bin_expr GREATER e2 = bin_expr 
+    { S.Less (e2, e1) }
 
 and_expr:
-  | bin_expr                        { $1 }
-  | bin_expr AND and_expr_list      { And ($1 :: $3) }
+  | e = bin_expr
+    { e }
+  | e1 = bin_expr AND e2 = and_expr_list     
+    { S.And (e1 :: e2) }
 
 and_expr_list:
-  | bin_expr                        { [$1] }
-  | bin_expr AND and_expr_list      { $1 :: $3 }
+  | e = bin_expr
+    { [e] }
+  | e = bin_expr AND es = and_expr_list 
+    { e :: es }
 
 or_expr:
-  | and_expr                        { $1 }
-  | and_expr OR or_expr_list        { Or ($1 :: $3) }
+  | e = and_expr
+    { e }
+  | e = and_expr OR es = or_expr_list       
+    { S.Or (e :: es) }
 
 or_expr_list:
-  | and_expr                        { [$1] }
-  | and_expr OR or_expr_list        { $1 :: $3 }
+  | e = and_expr
+    { [e] }
+  | e = and_expr OR es = or_expr_list
+    { e :: es }
 
 expr_list:
-  | expr COMMA expr                 { [$1; $3] }
-  | expr COMMA expr_list            { $1 :: $3 }
+  | e1 = expr COMMA e2 = expr
+    { [e1; e2] }
+  | e = expr COMMA es = expr_list
+    { e :: es }
 
 ty_simple:
-  | TSIGMA                           { Ty_Sigma }
-  | TREAL                            { Ty_Real }
-  | LPAREN ty RPAREN                 { $2 }
+  | TSIGMA 
+    { S.Ty_Sigma }
+  | TREAL
+    { S.Ty_Real }
+  | LPAREN t = ty RPAREN
+    { t }
 
 ty_prod:
-  | ty_simple                        { $1 }
-  | ty_simple TIMES ty_prod_list     { Ty_Tuple ($1 :: $3) }
+  | t = ty_simple
+    { t }
+  | t = ty_simple TIMES ts = ty_prod_list 
+    { S.Ty_Tuple (t :: ts) }
 
 ty_prod_list:
-  | ty_simple                        { [$1] }
-  | ty_simple TIMES ty_prod_list     { $1 :: $3 }
+  | t = ty_simple 
+    { [t] }
+  | t = ty_simple TIMES ts = ty_prod_list
+    { t :: ts }
 
 ty:
-  | ty TARROW ty                     { Ty_Arrow ($1, $3) }
-  | ty_prod                          { $1 }
+  | t1 = ty TARROW t2 = ty
+    { S.Ty_Arrow (t1, t2) }
+  | t = ty_prod
+    { t }
       
 segment:
-  | TREAL                              { I.bottom }
-  | left_endpoint COMMA right_endpoint { I.make $1 $3 }
+  | TREAL
+    { I.bottom }
+  | q1 = left_endpoint COMMA q2 = right_endpoint
+    { I.make q1 q2 }
 	
 left_endpoint:
-  | LPAREN MINUS INFINITY            { D.negative_infinity }
-  | LBRACK numconst                  { $2 }
+  | LPAREN MINUS INFINITY
+    { D.negative_infinity }
+  | LBRACK q = numconst  
+    { q }
 
 right_endpoint:
-  | INFINITY RPAREN                  { D.positive_infinity }
-  | PLUS INFINITY RPAREN             { D.positive_infinity }
-  | numconst RBRACK                  { $1 }
+  | INFINITY RPAREN
+    { D.positive_infinity }
+  | PLUS INFINITY RPAREN
+    { D.positive_infinity }
+  | q = numconst RBRACK
+    { q }
 
 numconst:
-  | NATURAL                         { D.of_int ~round:D.down $1 }
-  | DYADIC                          { $1 }
+  | n = NATURAL
+    { D.of_int ~round:D.down n }
+  | q = DYADIC
+    { q }

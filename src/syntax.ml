@@ -99,6 +99,7 @@ struct
     | Definition of name * expr (* Top-level definition [let x = e] *)
     | Precision of D.t          (* Target precision [$precision d] *)
     | Hnf of expr               (* Compute head-normal form *)
+    | Help                      (* Print help *)
     | Quit                      (* Exit toplevel [$quit] *)
 
   (** Convert a type to a string *)

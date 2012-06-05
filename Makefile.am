@@ -1,15 +1,17 @@
 ACLOCAL_AMFLAGS = -I build-aux
 bin_PROGRAMS = marshall
 marshall_SOURCES =
-EXTRA_DIST = example.asd src etc COPYRIGHT.txt README.md
+marshall_DATA = prelude.asd
+EXTRA_DIST = prelude.asd tests examples src etc COPYRIGHT.txt README.md
+marshalldir=$(datarootdir)/marshall
 
 # The main program (without the .ml extension)
 MARSHALLTARGET=src/marshall
 
 # How to compile
-MARSHALLOCAMLBUILD=$(OCAMLBUILD) -use-menhir -lib nums
+MARSHALLOCAMLBUILD=$(OCAMLBUILD) -use-menhir -lib nums -lib unix
 
-.PHONY: test test-validate test-clean \
+.PHONY: test test-validate test-clean src/version.ml \
 	marshall.byte marshall.native marshall.d.byte marshall.p.native
 
 marshall: marshall.$(BUILDBEST)
@@ -31,7 +33,7 @@ marshall.p.native: src/version.ml
 	cd $(srcdir) && $(MARSHALLOCAMLBUILD) $(MARSHALLTARGET).p.native
 
 src/version.ml:
-	echo "let version=\"$(PACKAGE_VERSION)\";;" > src/version.ml
+	echo "let version=\"$(PACKAGE_VERSION)\";; let marshalldir=\"$(marshalldir)\";;" > src/version.ml
 
 # Explain parser conflicts in the file parser.conflicts
 conflicts:

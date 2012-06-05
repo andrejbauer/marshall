@@ -1,4 +1,4 @@
-(* \section{Error messages (module [Message])} *)
+(** Error messages *)
 
 (* \subsection{Parsing errors} *)
 

@@ -2,130 +2,174 @@
 
 module Make = functor (D : Dyadic.DYADIC) ->
 struct
-  module S = Syntax.Make(D)
   module TC = Typecheck.Make(D)
   module E = Eval.Make(D)
   module P = Parser.Make(D)
   module L = Lexer.Make(D)
 
-  (* Exception [Fatal_error] is raised when further evaluation is
-     impossible. *)
-  exception Fatal_error of string
+  let usage = "Usage: eff [option] ... [file] ..."
+  let interactive_shell = ref true
+  let prelude = ref true
+  let wrapper = ref (Some ["rlwrap"; "ledit"])
 
-  (* [fatal_error msg] raises exception [Fatal_error msg]. *)
-  let fatal_error msg = raise (Fatal_error msg)
+let help_text = "Toplevel commands:
+#type <expr> ;;    print the type of <expr> without evaluating it
+#precision d ;;    set output precision to dyadic constant d
+#help ;;           print this help
+#quit ;;           exit Marshall
+#use \"<file>\" ;; evaluate <file>." ;;
 
-  let initial_prec = 32
+  (** We look for prelude.asd _first_ next to the executable and _then_ in the relevant
+      install directory. This makes it easier to experiment with prelude.asd because eff
+      will work straight from the build directory. We are probably creating a security hole,
+      but we'll deal with that when eff actually gets used by more than a dozen people. *)
+  let prelude_file =
+    ref (if Sys.file_exists "prelude.asd"
+         then Filename.concat (Filename.dirname Sys.argv.(0)) "prelude.asd"
+         else Filename.concat Version.marshalldir "prelude.asd")
 
-  (* [exec_cmd (ctx,env) e] executes toplevel command [c] in global
-     environment [env] and typing context [ctx]. It prints the result on
-     standard output and return the new environment. *)
+  (** A list of files to be loaded and run. *)
+  let files = ref []
 
-  let rec exec_cmd ((ctx,env) as ce) = function
-    | S.Expr (e, trace) ->
+  let add_file interactive filename = (files := (filename, interactive) :: !files)
+
+  (* Command-line options *)
+  let options = Arg.align [
+    ("--prelude",
+     Arg.String (fun str -> prelude_file := str),
+     " Specify the prelude.asd file");
+    ("--no-prelude",
+     Arg.Clear prelude,
+     " Do not load pervasives.eff");
+    ("--wrapper",
+     Arg.String (fun str -> wrapper := Some [str]),
+     "<program> Specify a command-line wrapper to be used (such as rlwrap or ledit)");
+    ("--no-wrapper",
+     Arg.Unit (fun () -> wrapper := None),
+     " Do not use a command-line wrapper");
+    ("-v",
+     Arg.Unit (fun () ->
+       print_endline ("Marshall " ^ Version.version ^ "(" ^ Sys.os_type ^ ")") ;
+       exit 0),
+     " Print version information and exit");
+    ("-n",
+     Arg.Clear interactive_shell,
+     " Do not run the interactive toplevel");
+    ("-l",
+     Arg.String (fun str -> add_file false str),
+     "<file> Load <file> into the initial environment");
+  ] ;;
+
+  (* Treat anonymous arguments as files to be run. *)
+  let anonymous str =
+    add_file true str ;
+    interactive_shell := false ;;
+
+  (* Parser wrapper *)
+  let parse parser lex =
+    try
+      parser L.token lex
+    with
+      | P.Error ->
+          Error.syntax ~pos:(L.position_of_lex lex) ""
+      | Failure "lexing: empty token" ->
+          Error.syntax ~pos:(L.position_of_lex lex) "unrecognised symbol."
+
+  let initial_ctxenv = ([], [])
+
+  (** [exec_cmd interactive (ctx,env) c] executes toplevel command [c] in global
+      environment [env] and typing context [ctx]. It prints the result on
+      standard output and return the new environment. *)
+  let rec exec_cmd interactive (ctx,env) = function
+    | E.S.Expr (e, trace) ->
 	(try
 	   let ty = TC.type_of ctx e in
-	   let v1, v2 = E.eval trace initial_prec env e in
-	     print_endline ("- : " ^ S.string_of_type ty ^ " = " ^ S.string_of_expr v2) ;
-	     ce
-	 with error -> (Message.report error; ce))
-    | S.Definition (x, e) ->
+	   let v1, v2 = E.eval trace env e in
+	     print_endline ("- : " ^ E.S.string_of_type ty ^ " = " ^ E.S.string_of_expr v2) ;
+	     (ctx, env)
+	 with error -> (Message.report error; (ctx, env)))
+    | E.S.Definition (x, e) ->
 	(try
 	   let ty = TC.type_of ctx e in
-	   let v1, v2 = E.eval false initial_prec env e in
+	   let v1, v2 = E.eval false env e in
 	     print_endline
-	       (S.string_of_name x ^ " : " ^ S.string_of_type ty ^ " = " ^ S.string_of_expr v2) ;
+	       (E.S.string_of_name x ^ " : " ^ E.S.string_of_type ty ^ " = " ^ E.S.string_of_expr v2) ;
 	     ((x,ty)::ctx, E.Env.extend x v1 env)
-	 with error -> (Message.report error; ce))
-    | S.Precision q ->
+	 with error -> (Message.report error; (ctx, env)))
+    | E.S.Precision q ->
 	E.target_precision := q ;
 	print_endline ("Target precision set to " ^ D.to_string q) ;
-	ce
-    | S.Hnf e ->
+	(ctx, env)
+    | E.S.Hnf e ->
 	let v = E.hnf ~free:true env e in
-	  print_endline (S.string_of_expr v) ;
-	  ce      
-    | S.Quit -> raise End_of_file
-    | S.Use fn -> exec_file ce fn
+	  print_endline (E.S.string_of_expr v) ;
+	  (ctx, env)
+    | E.S.Help -> print_endline help_text ; (ctx, env)
+    | E.S.Quit -> raise End_of_file
+    | E.S.Use fn -> use_file (ctx, env) (fn, interactive)
 	
-  (* [exec file (ctx,env) fn] executes the contents of file [fn] in
-     global context [ctx] and environment [env]. It prints results on
-     the standard output and returns the new environment. *)
+  (** [exec_cmds interactive (ctx,env) cmds] executes the list of commands [cmds] in
+      context [ctx] and environment [env], and returns the new
+      environment. *)
+  and exec_cmds interactive ce cmds =
+    List.fold_left (exec_cmd interactive) ce cmds
 
-  and exec_file ce fn =
-    let fh = open_in fn in
-    let lex = Message.lexer_from_channel fn fh in
+  and use_file env (filename, interactive) =
+    let cmds = L.read_file (parse P.file) filename in
+      List.fold_left (exec_cmd interactive) env cmds
+
+
+  (* Interactive toplevel *)
+  let toplevel ctxenv =
+    let eof = match Sys.os_type with
+      | "Unix" | "Cygwin" -> "Ctrl-D"
+      | "Win32" -> "Ctrl-Z"
+      | _ -> "EOF"
+    in
+      print_endline ("Marshall " ^ Version.version);
+      print_endline ("[Type " ^ eof ^ " to exit or #help;; for help.]");
       try
-	let cmds = P.toplevel L.token lex in
-	  close_in fh ;
-	  exec_cmds ce cmds
-      with
-	| Sys.Break -> Message.runtime_error "Interrupted."
-	| Parsing.Parse_error | Failure("lexing: empty token") ->
-	    Message.syntax_error lex
+        let ctxenv = ref ctxenv in
+          while true do
+            try
+              let cmd = L.read_toplevel (parse P.commandline) () in
+                ctxenv := exec_cmd true !ctxenv cmd
+            with
+              | Error.Error err -> Print.error err
+              | Sys.Break -> prerr_endline "Interrupted."
+          done
+      with End_of_file -> ()
 
-  (* [exec_cmds (ctx,env) cmds] executes the list of commands [cmds] in
-     context [ctx] and environment [env], and returns the new
-     environment. *)
-
-  and exec_cmds ce cmds =
-    List.fold_left exec_cmd ce cmds
-
-  (* [shell (ctx,env)] runs the interactive shell in context [ctx] and
-     environment [env]. *)
-
-  let shell ce =
-    print_string ("Marshall. Press ") ;
-    print_string (match Sys.os_type with
-		      "Unix" | "Cygwin" -> "Ctrl-D"
-		    | "Win32" -> "Ctrl-Z"
-		    | _ -> "EOF") ;
-    print_endline " to exit." ;
-    print_endline ("\nTop level commands:\n" ^
-		     " $use \"<filename>\" ... evaluate expressions in file <filename>.\n" ^
-		     " $trace <expr> ......... trace execution of an expression.\n" ^
-		     " $precision d .......... set output precision to dyadic constant d.\n" ^
-		     " $quit ................. exit"
-		  ) ;
-    print_endline ("\nPress Ctrl-C to interrupt evaluation at any point.") ;
-    let global_ctx_env = ref ce in
-      try
-	while true do
-	  try
-	    print_string "Marshall> ";
-	    let str = read_line () in
-	    let lex = Message.lexer_from_string str in
-	      (* parse a list of commands and print them *)
-	    let cmds =
-	      try
-		P.toplevel L.token lex
-	      with
-		| Failure("lexing: empty token")
-		| Parsing.Parse_error -> fatal_error (Message.syntax_error lex)
-	    in
-	    let ce = exec_cmds !global_ctx_env cmds in
-	      (* set the new global environment *)
-	      global_ctx_env := ce
-	  with error -> Message.report error
-	done 
-      with
-	  End_of_file -> print_endline "\nGood bye."
-
-  (* Main program *)
-
+  (** Main program *)
   let main =
     Sys.catch_break true ;
-    let noninteractive = ref false in
-    let files = ref [] in
-      Arg.parse
-	[("-n", Arg.Set noninteractive, "do not run interactive shell")]
-	(fun f -> files := f :: !files)
-	"Usage: marshall [-n] [file] ..." ;
-      files := List.rev !files ;
-      let ce =
-	try
-	  List.fold_left exec_file ([],[]) !files
-	with error -> (Message.report error; exit 1)
-      in    
-	if not !noninteractive then shell ce
-end;;
+    (* Parse the arguments. *)
+    Arg.parse options anonymous usage ;
+    (* Attemp to wrap yourself with a line-editing wrapper. *)
+    if !interactive_shell then
+      begin match !wrapper with
+        | None -> ()
+        | Some lst ->
+            let n = Array.length Sys.argv + 2 in
+            let args = Array.make n "" in
+              Array.blit Sys.argv 0 args 1 (n - 2) ;
+              args.(n - 1) <- "--no-wrapper" ;
+              List.iter
+                (fun wrapper ->
+                   try
+                     args.(0) <- wrapper ;
+                     Unix.execvp wrapper args
+                   with Unix.Unix_error _ -> ())
+                lst
+      end ;
+    (* Files were listed in the wrong order, so we reverse them *)
+    files := List.rev !files;
+    (* Load the pervasives. *)
+    if !prelude then add_file false !prelude_file ;
+    try
+      (* Run and load all the specified files. *)
+      let ctxenv = List.fold_left use_file initial_ctxenv !files in
+        if !interactive_shell then toplevel ctxenv
+    with
+        Error.Error err -> Print.error err; exit 1
+end
