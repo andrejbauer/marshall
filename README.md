@@ -21,47 +21,38 @@ See `example.asd` for more examples.
 
 ## Prerequisites
 
-To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 3.12 or later.
-It is highly recommended that you also get the
-[menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator.
+To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 3.12 and
+the [menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator.
 
 Both are available through standard packaging systems on Linux distributions, and
 on MacOS X via [macports](http://www.macports.org/). If you embark on compiling
 Ocaml on your own, consider [GODI](http://godi.camlcity.org/godi/index.html) instead.
 
-Marshall can also be compiled with the MPFR library, which makes it run faster,
-see instructions below.
+## Compilation
 
-## Compiling with ocaml and menhir
+Compilation should run smoothly or not at all. Type
 
-Assuming you have installed the prerequisites, type
+    ./configure
+    make
 
-    ocamlbuild -lib nums -use-menhir marshall_bignum.native
+The `configure` command accepts standard autoconf options, see `configure --help`.
+The compiled executable is called `marshall` and you can run it in place.
 
-This will create an exectuable called `marshall_bignum.native` which you can
-run.
+## Installation
 
-## Compiling with ocaml without menhir
+To install Marshall type
 
-If you have no menhir you can do the following
+    make install
 
-    mv parser.mly parser_nomenhir.mly
-    mv parser_nomenhir.ml parser.ml
-    mv parser_nomenhir.mli parser.mli
-    ocamlbuild -lib nums marshall_bignum.native
+## Command-line editing
 
-## How to use Marshall
+If you install the `rlwrap` or `ledit` command-line wrapper, Marshall will use them
+automatically.
 
-At the moment you will have to rely on `example.asd` to see what Marshall can
-do. We intend to write better documentation.
+## Examples
 
-To run Marshall, type `./marshall_bignum.native` at the command line. We
-recommend that you install a command-line wrapper such as `rlwrap` or `ledit`
-and run Marshall through it, e.g.,
-
-    rlwrap ./marshall_bignum.native
-
-This way you will have nice line-editing features.
+There are examples in the `example` subdirectory. It may be instructive to look at
+`prelude.asd`.
 
 ## A small Haskell implementation
 
@@ -72,9 +63,9 @@ of Ljubljana. Of particular help might be the notes `etc/haskell/notes.tex`.
 
 ## Compiling with MPFR
 
-Marshall can be compiled with the MPFR library, but this requires extra work,
-which we briefly describe here. These instructions may not actually be 100%
-accurate.
+In theory Marshall can be compiled with the MPFR library, but this requires extra work.
+At the moment MPFR is not used by autoconf. Here are some obsolete instruction that may
+or may not work.
 
 0. You need the prerequisites listed above.
 
@@ -98,10 +89,10 @@ installation of mlgmpidl.
 
 6. TODO How to "register" it with ocamlfind?
 
-7. To compile the bytecode version with Mpfr library, type
+7. To compile the bytecode version with Mpfr library, type in the `src` subdirectory
 
     ocamlbuild -use-ocamlfind marshall_mpfr.byte
 
-To compile bytecode, native, and the documentation, type
+To compile bytecode, native, and the documentation, type in the `src` subdirectory
 
     ocamlbuild -use-ocamlfind all.otarget
