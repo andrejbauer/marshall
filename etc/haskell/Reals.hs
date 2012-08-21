@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
 
 {- | We implement real numbers as the completion of dyadic intervals. The whole construction is
    parametrized by an approximate field, an example of which is "Dyadic".
@@ -6,7 +6,7 @@
 
 module Reals where
 
-import Ratio
+import Data.Ratio
 import Staged
 import Space
 import Dyadic
