@@ -195,7 +195,7 @@ struct
 
   let inv ~prec ~round i =
     let a = lower i in
-    let b = lower i in
+    let b = upper i in
       { lower = lazy (
 	  let linv = D.inv ~prec ~round in
 	    match D.sgn a, D.sgn b with
