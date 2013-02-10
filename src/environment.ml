@@ -18,7 +18,9 @@ struct
 	  
   (* Extend [env] with [(x,e)]. *)
   let extend x e env = (x,e) :: env
-    
+ 
+  let string_of_env env =
+    String.concat "\n" (List.map (fun (x,v) -> S.string_of_name x ^ "=" ^ S.string_of_expr v) env)
 end
 
 

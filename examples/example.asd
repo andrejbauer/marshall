@@ -12,10 +12,10 @@ let id = fun a : real => cut t left t < a right a < t
 ! The square root function
 let sqrt =
   fun a : real =>
-    cut x
-      left  (x < 0 \/ x * x < a)
+    cut y 
+      left  (y < 0 \/ y * y < a)
 
-      right (x > 0 /\ x * x > a)
+      right (y > 0 /\ y * y > a)
 ;;
 
 ! Square root of two
@@ -73,3 +73,7 @@ let max =
 
 let u = max (fun x : real => x * (1 - x))
 ;;
+
+let v = max sqrt ;;
+
+let w = max (fun x:real => 0.00756*x - 0.0726*x^2 + 0.299667*x^3 - 0.5675*x^4 + 0.5*x^5 - 0.166667*x^6);;
