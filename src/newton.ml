@@ -97,13 +97,27 @@ struct
     | S.Proj (_, _) -> failwith "Cannot differentiate a projection"
     | S.Lambda (x, ty, e) -> failwith "Cannot differentiate an abstraction"
     | S.App (e1, e2) -> failwith "Cannot differentiate a redex"
+
   
-  (* The function [estimate_positive env i x e] returns a set such that
+  let estimate_endpoint prec x y d =            
+        match D.sgn d with
+  	| `negative ->
+  	    let b' = D.sub ~prec ~round:D.down x (D.div ~prec ~round:D.up y d) in  	      
+  		R.open_left_ray b'
+  	| `zero ->
+  	    (match D.sgn y with
+  	       | `negative | `zero -> R.empty
+  	       | `positive -> R.real_line)
+  	| `positive ->
+  	    let a' = D.sub ~prec ~round:D.up x (D.div ~prec ~round:D.down y d) in  	     
+  		R.open_right_ray a'
+
+  (* The function [estimate_positive env x i e] returns a set such that
      in environment [env] the expression [e] with free variable [x]
      ranging over interval [i] we have [0 < e] everywhere on the set. It
      uses interval Newton's method.
   *)
-  
+
   let estimate_positive prec env x i e =
     (* For infinite intervals we give up. We could try to do something
        more intelligent, such as computing the derivative at infinity
@@ -112,31 +126,19 @@ struct
     if not (I.proper i) then
       R.empty
     else
-      let a = I.lower i in
-      let y = A.get_interval (A.lower prec (Env.extend x (S.Dyadic a) env) e) in
-      let d = A.get_interval (A.lower prec (Env.extend x (S.Interval i) env) (diff x e)) in
-      let yl = I.lower y in
-      let dl = I.lower d in
-        match D.sgn dl with
-  	| `negative ->
-  	    let b' = D.sub ~prec ~round:D.down a (D.div ~prec ~round:D.up yl dl) in
-  	      R.intersection
-  		(R.of_interval i)
-  		(R.open_left_ray b')
-  	| `zero ->
-  	    (match D.sgn yl with
-  	       | `negative | `zero -> R.empty
-  	       | `positive -> R.of_interval i)
-  	| `positive ->
-  	    let a' = D.sub ~prec ~round:D.up a (D.div ~prec ~round:D.down yl dl) in
-  	      R.intersection
-  		(R.of_interval i)
-  		(R.open_right_ray a')
-  
-  (* The function [estimate_non_positive env i x e] returns a
+      let x1 = I.lower i in
+      let x2 = I.upper i in
+      let y1 = I.lower (A.get_interval (A.lower prec (Env.extend x (S.Dyadic x1) env) e)) in 
+      let y2 = I.lower (A.get_interval (A.lower prec (Env.extend x (S.Dyadic x2) env) e)) in 
+      let lif = A.get_interval (A.lower prec (Env.extend x (S.Interval i) env) (diff x e)) in  (* Lifschitz constant as an interval *)      
+	(R.union
+	  (estimate_endpoint prec x1 y1 (I.lower lif)) (* estimate at i.lower *)
+	  (estimate_endpoint prec x2 y2 (I.upper lif)))  (* estimate at i.upper*)
+
+  (* The function [estimate_non_positive env x i e] returns a
      set such that in environment [env] the expression [e] with
      free variable [x] ranging over interval [i] is guaranteed to be
-     non-positive everywhere on the set.
+     non-positive everywhere on the complement of the set.
   *)
   
   let estimate_non_positive k prec env x i e =
@@ -145,28 +147,17 @@ struct
        (using a suitable transformation which moves infinity to a finite
        point). *)
     if not (I.proper i) then
-      R.empty
+      R.real_line
     else
-      let a = I.lower i in
-      let y = A.get_interval (A.upper prec (Env.extend x (S.Dyadic a) env) e) in
-      let d = A.get_interval (A.upper prec (Env.extend x (S.Interval (I.flip i)) env) (diff x e)) in
-      let yl = I.lower y in
-      let dl = I.lower d in
-      match D.sgn dl with
-  	| `negative ->
-  	    let a' = D.sub ~prec ~round:D.up a (D.div ~prec ~round:D.down yl dl) in
-  	      R.intersection
-  		(R.of_interval i)
-  		(R.closed_right_ray a')
-  	| `zero ->
-  	    (match D.sgn yl with
-  	       | `negative | `zero -> R.of_interval i
-  	       | `positive -> R.empty)
-  	| `positive ->
-  	    let b' = D.sub ~prec ~round:D.down a (D.div ~prec ~round:D.up yl dl) in
-  	      R.intersection
-  		(R.of_interval i)
-  		(R.closed_left_ray b')
+      let x1 = I.lower i in
+      let x2 = I.upper i in
+      let y1 = I.lower (A.get_interval (A.upper prec (Env.extend x (S.Dyadic x1) env) e)) in 
+      let y2 = I.lower (A.get_interval (A.upper prec (Env.extend x (S.Dyadic x2) env) e)) in 
+      let lif = A.get_interval (A.upper prec (Env.extend x (S.Interval (I.flip i)) env) (diff x e)) in  (* Lifschitz constant as an interval *)                 
+	  R.union (estimate_endpoint prec x1 y1 (I.lower lif))
+		 (estimate_endpoint prec x2 y2 (I.upper lif))
+	
+
   (* The function [estimate prec env i x p] returns a pair of sets [(a,b)]
      such that in environment [env] the proposition [p] with free
      variable [x] ranging over interval [i] fails everywhere on [a] and
@@ -174,7 +165,7 @@ struct
   *)
   
   let rec estimate_true k prec env x i = function
-    | S.True -> R.of_interval i
+    | S.True -> R.real_line
     | S.False -> R.empty
     | S.And lst ->
         List.fold_left
@@ -194,17 +185,17 @@ struct
     | _ -> assert false
   
   let rec estimate_false k prec env x i = function
-    | S.True -> R.empty
-    | S.False -> R.of_interval i
+    | S.True -> R.real_line
+    | S.False -> R.empty
     | S.And lst ->
-        List.fold_left
-  	(fun r p -> R.union r (estimate_false k prec env x i p))
-  	R.empty
-  	lst
-    | S.Or lst ->
         List.fold_left
   	(fun r p -> R.intersection r (estimate_false k prec env x i p))
   	R.real_line
+  	lst
+    | S.Or lst ->
+        List.fold_left
+  	(fun r p -> R.union r (estimate_false k prec env x i p))
+  	R.empty
   	lst
    (* | S.Less (e1, e2) -> estimate_non_positive prec env x i (S.Binary (S.Minus, e2, e1))*)
     | S.Less (e1, e2) ->
@@ -218,7 +209,8 @@ struct
     | _ -> assert false
   
   let estimate k prec env x i p =
-    (estimate_false k prec env x i p, estimate_true k prec env x i p)
+    (R.intersection (R.complement (estimate_false k prec env x i p)) (R.of_interval i),
+     R.intersection (estimate_true k prec env x i p)  (R.of_interval i))
   
 end;;
  
