@@ -149,22 +149,21 @@ struct
     else
       let a = I.lower i in
       let y = A.get_interval (A.upper prec (Env.extend x (S.Dyadic a) env) e) in
-      let d = A.get_interval (A.upper prec (Env.extend x (S.Interval i) env) (diff x e)) in
-(*      let d = A.get_interval (A.upper prec (Env.extend x (S.Dyadic (I.midpoint prec k i)) env) (diff x e)) in*)
-      let yu = I.lower y in
-      let du = I.upper d in
-      match D.sgn du with
+      let d = A.get_interval (A.upper prec (Env.extend x (S.Interval (I.flip i)) env) (diff x e)) in
+      let yl = I.lower y in
+      let dl = I.lower d in
+      match D.sgn dl with
   	| `negative ->
-  	    let a' = D.sub ~prec ~round:D.up a (D.div ~prec ~round:D.down yu du) in
+  	    let a' = D.sub ~prec ~round:D.up a (D.div ~prec ~round:D.down yl dl) in
   	      R.intersection
   		(R.of_interval i)
   		(R.closed_right_ray a')
   	| `zero ->
-  	    (match D.sgn yu with
+  	    (match D.sgn yl with
   	       | `negative | `zero -> R.of_interval i
   	       | `positive -> R.empty)
   	| `positive ->
-  	    let b' = D.sub ~prec ~round:D.down a (D.div ~prec ~round:D.up yu du) in
+  	    let b' = D.sub ~prec ~round:D.down a (D.div ~prec ~round:D.up yl dl) in
   	      R.intersection
   		(R.of_interval i)
   		(R.closed_left_ray b')
