@@ -21,10 +21,10 @@ let id = fun a : real => cut t left t < a right a < t
 ! The square root function
 let sqrt =
   fun a : real =>
-    cut y 
-      left  (y < 0 \/ y * y < a)
+    cut x 
+      left  (x < 0 \/ x * x < a)
 
-      right (y > 0 /\ y * y > a)
+      right (x > 0 /\ x * x > a)
 ;;
 
 ! Square root of two

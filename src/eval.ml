@@ -64,13 +64,29 @@ struct
      the user happy). A $\lambda$-abstraction is not evaluated.
   *)
 
+  let rec findv x e =
+    match e with
+      | S.Var y -> x=y
+      | _ -> false
+
+  let rec findenv x env =
+    match env with
+      | [] -> false
+      | (_,e)::l -> (findv x e) || (findenv x l)
+
   (* The first step of evaluation is to evaluate to head-normal form
      because we want to get rid of local definitions and redexes. This
      causes a huge inefficiency because it may unnecessarily multiply
      repeat subexpressions, but computation of derivatives cannot handle
      general applications and local definitions. *)
 
-  let rec hnf ?(free=false) env e =
+  let rec hnf ?(free=false) env e =     
+    let alpha x env = 
+        if findenv x env then begin
+	  let x' = S.fresh_name() in
+	    x', hnf ~free:true (Env.extend x (S.Var x') [])	    
+        end else x, fun e -> e
+    in      
     let hnf = hnf ~free in
       match e with
 	| S.Var x ->
@@ -79,9 +95,10 @@ struct
 	     with Not_found ->
 	       if free then S.Var x else error ("Unknown variable " ^ S.string_of_name x))
 	| (S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False) as e -> e
-	| S.Cut (x, i, p1, p2) -> 
-	    let env' = Env.extend x (S.Var x) env in
-	      S.Cut (x, i, hnf env' p1, hnf env' p2)
+	| S.Cut (x, i, p1, p2) ->
+	    let x', a = alpha x env in
+	    let env' = Env.extend x' (S.Var x') env in		  
+	      S.Cut (x', i, hnf env' (a p1), hnf env' (a p2))
 	| S.Binary (op, e1, e2) -> S.Binary (op, hnf env e1, hnf env e2)
 	| S.Unary (op, e) -> S.Unary (op, hnf env e)
 	| S.Power (e, k) -> S.Power (hnf env e, k)
@@ -93,9 +110,15 @@ struct
 	| S.And lst -> S.And (List.map (hnf env) lst)
 	| S.Or lst -> S.Or (List.map (hnf env) lst)
 	| S.Tuple lst -> S.Tuple (List.map (hnf env) lst)
-	| S.Lambda (x, ty, e) -> S.Lambda (x, ty, hnf (Env.extend x (S.Var x) env) e)
-	| S.Exists (x, i, e) -> S.Exists (x, i, hnf (Env.extend x (S.Var x) env) e)
-	| S.Forall (x, i, e) -> S.Forall (x, i, hnf (Env.extend x (S.Var x) env) e)
+	| S.Lambda (x, ty, e) -> 
+	  let x',a = alpha x env in 
+	    S.Lambda (x', ty, hnf (Env.extend x' (S.Var x') env) (a e))
+	| S.Exists (x, i, e) ->
+	  let x',a = alpha x env in 
+	    S.Exists (x', i, hnf (Env.extend x' (S.Var x') env) (a e))
+	| S.Forall (x, i, e) -> 
+	  let x',a = alpha x env in 
+	    S.Forall (x', i, hnf (Env.extend x' (S.Var x') env) (a e))
 	| S.App (e1, e2)  ->
 	    let e2' = hnf env e2 in
 	      (match hnf env e1 with
