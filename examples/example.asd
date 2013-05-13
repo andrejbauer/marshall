@@ -83,7 +83,7 @@ let max =
 let u = max (fun x : real => x * (1 - x))
 ;;
 
-!let v = max sqrt ;;
-#precision 1e-3;;
+max sqrt ;;
+#precision 1e-1;;
 
 let w = max (fun x:real => 0.00756*x - 0.0726*x^2 + 0.299667*x^3 - 0.5675*x^4 + 0.5*x^5 - 0.166667*x^6);;

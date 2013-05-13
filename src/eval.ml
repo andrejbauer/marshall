@@ -147,10 +147,11 @@ struct
 	      match D.cmp a'' b'' with
 		  | `less ->
 		      (* The new interval *)
-		    let l = I.make a'' b'' in
+		    let l = I.make a'' b'' in	      	    
 		    let env' = Env.extend x (S.RealVar (x, l)) env in
 		    let q1 = refine k prec env' p1 in
 		    let q2 = refine k prec env' p2 in
+(*		    print_endline ("Cut: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (I.to_string j) ^ (I.to_string l) ^ (S.string_of_expr q1) ^ (S.string_of_expr q2));*)
 		      S.Cut (x, l, q1, q2)
 		  | `equal ->
 		      (* We found an exact value *)
@@ -186,11 +187,14 @@ struct
 	      let i1, i2 = I.split prec 1 i in
 		(* Newton's method *)
 	      let (a1, b1) = N.estimate k prec env x i1 q in
+
+(*	      print_endline ("Exists: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (R.to_string a1) ^ (R.to_string b1));*)
 	      if R.is_inhabited b1 then
 		(* We could collect [b1] as a witness here. *)
 		S.True
 	      else
 		let (a2, b2) = N.estimate k prec env x i2 q in
+(*		  print_endline ("Exists: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (R.to_string a2) ^ (R.to_string b2));*)
 		  if R.is_inhabited b2 then
 		    (* We could collect [b2] as a witness here. *)
 		    S.True
@@ -229,11 +233,13 @@ struct
 	       let i1, i2 = I.split prec 1 i in
 		(* Newton's method *)
               let (a1, b1) = N.estimate k prec env x i1 q in
+(*	      print_endline ("Forall: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (R.to_string a1) ^ (R.to_string b1));*)
 	      if R.is_inhabited a1 then
 		(* We could take [a1] as witness for quantifier being false. *)
 		S.False
 	      else
 		let (a2, b2) = N.estimate k prec env x i2 q in
+(*		print_endline ("Forall: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (R.to_string a2) ^ (R.to_string b2));*)
 		  if R.is_inhabited a2 then
 		    (* We could take [a2] as witness for quantifier being false. *)
 		    S.False

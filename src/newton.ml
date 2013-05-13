@@ -130,7 +130,7 @@ struct
       let x2 = I.upper i in
       let y1 = I.lower (A.get_interval (A.lower prec (Env.extend x (S.Dyadic x1) env) e)) in 
       let y2 = I.lower (A.get_interval (A.lower prec (Env.extend x (S.Dyadic x2) env) e)) in 
-      let lif = A.get_interval (A.lower prec (Env.extend x (S.Interval i) env) (diff x e)) in  (* Lifschitz constant as an interval *)      
+      let lif = A.get_interval (A.lower prec (Env.extend x (S.Interval i) env) (diff x e)) in  (* Lifschitz constant as an interval *)      	
 	(R.union
 	  (estimate_endpoint prec x1 y1 (I.lower lif)) (* estimate at i.lower *)
 	  (estimate_endpoint prec x2 y2 (I.upper lif)))  (* estimate at i.upper*)
@@ -154,6 +154,7 @@ struct
       let y1 = I.lower (A.get_interval (A.upper prec (Env.extend x (S.Dyadic x1) env) e)) in 
       let y2 = I.lower (A.get_interval (A.upper prec (Env.extend x (S.Dyadic x2) env) e)) in 
       let lif = A.get_interval (A.upper prec (Env.extend x (S.Interval (I.flip i)) env) (diff x e)) in  (* Lifschitz constant as an interval *)                 
+      if not (I.proper (I.flip lif)) then R.real_line else
 	  R.union (estimate_endpoint prec x1 y1 (I.lower lif))
 		 (estimate_endpoint prec x2 y2 (I.upper lif))
 	
