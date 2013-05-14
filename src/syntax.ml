@@ -7,17 +7,17 @@ struct
   (** The type of variable names. Variables are either original or generated. *)
   type name =
     | Ident of string
-    | Gensym of int
+    | Gensym of string * int
 	
   (** Generate a fresh variable name. *)
   let fresh_name =
     let k = ref 0 in
-      fun () -> incr k; Gensym !k
+      fun s -> incr k; Gensym (s,!k)
 	
   (** Convert a name to a string. *)
   let string_of_name = function
     | Ident str -> str
-    | Gensym k -> "gen" ^ string_of_int k
+    | Gensym (s,k) -> s ^ string_of_int k
 	
   (** In Marshall we have base types for reals and propositions, product types and
       function types. Function types are a mirage because all $\lambda$-abstractions get

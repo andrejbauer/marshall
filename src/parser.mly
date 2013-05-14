@@ -3,16 +3,16 @@
     module I = Interval.Make(D)
 
     let equal r e1 e2 =
-      let x = S.fresh_name () in
-      let y = S.fresh_name () in
+      let x = S.fresh_name "gen" in
+      let y = S.fresh_name "gen" in
       let d = S.Binary (S.Minus, e1, e2) in
 	S.Let (y, r,
 	    S.Let (x, d,
 		  S.And [S.Less (S.Unary (S.Opposite, S.Var y), S.Var x); S.Less (S.Var x, S.Var y)]))
 
     let apart e1 e2 =
-      let x = S.fresh_name () in
-      let y = S.fresh_name () in
+      let x = S.fresh_name "gen" in
+      let y = S.fresh_name "gen" in
 	S.Let (x, e1,
 	    S.Let (y, e2,
 		  S.Or [S.Less (S.Var x, S.Var y); S.Less (S.Var y, S.Var x)]))
