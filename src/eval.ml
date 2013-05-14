@@ -64,15 +64,31 @@ struct
      the user happy). A $\lambda$-abstraction is not evaluated.
   *)
 
-  let rec findv x e =
-    match e with
-      | S.Var y -> x=y
-      | _ -> false
+    let rec free_in y e = match e with
+	| S.Var x -> x = y
+	| S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False -> false
+	| S.Cut (x, i, p1, p2) -> x<>y && (free_in y p1 || free_in y p2)
+	| S.Binary (op, e1, e2) -> free_in y e1 || free_in y e2
+	| S.Unary (op, e) -> free_in y e 
+	| S.Power (e, k) -> free_in y e
+	| S.Proj (e, k) ->
+	    (match  e with
+	       | S.Tuple _ as e' -> free_in y (A.proj e' k)
+	       | e' -> free_in y e)
+	| S.Less (e1, e2) -> free_in y e1 || free_in y e2
+	| S.And lst -> List.fold_left (fun p e -> p || free_in y e) false lst
+	| S.Or lst -> List.fold_left (fun p e -> p || free_in y e) false lst
+	| S.Tuple lst -> List.fold_left (fun p e -> p || free_in y e) false lst
+	| S.Lambda (x, ty, e) -> x<>y && (free_in y e)
+	| S.Exists (x, i, e) -> x<>y && (free_in y e)
+	| S.Forall (x, i, e) -> x<>y && (free_in y e)
+	| S.App (e1, e2)  -> free_in y e1 || free_in y e2
+	| S.Let (x, e1, e2) -> free_in y e1 || (x<>y && free_in y e2)
 
-  let rec findenv x env =
-    match env with
-      | [] -> false
-      | (_,e)::l -> (findv x e) || (findenv x l)
+    let rec free_in_env x env e =
+      match env with
+	| [] -> false
+	| (y,e')::l -> (if free_in y e then free_in x e' else false) || free_in_env x l e
 
   (* The first step of evaluation is to evaluate to head-normal form
      because we want to get rid of local definitions and redexes. This
@@ -80,12 +96,20 @@ struct
      repeat subexpressions, but computation of derivatives cannot handle
      general applications and local definitions. *)
 
-  let rec hnf ?(free=false) env e =     
-    let alpha x env = 
-        if findenv x env then begin
-	  let x' = S.fresh_name() in
-	    x', hnf ~free:true (Env.extend x (S.Var x') [])	    
-        end else x, fun e -> e
+  let rec hnf ?(free=false) env e =        
+    let alpha1 x env e =
+      if free_in_env x env e then 
+	let x' = S.fresh_name (S.string_of_name x) in
+	  x', hnf ~free:true (Env.extend x (S.Var x') []) e
+      else
+	 x, e
+    in      
+    let alpha2 x env e1 e2 =
+      if free_in_env x env e1 || free_in_env x env e2 then 
+	let x' = S.fresh_name (S.string_of_name x) in
+	  x', hnf ~free:true (Env.extend x (S.Var x') []) e1, hnf ~free:true (Env.extend x (S.Var x') []) e2
+      else
+	 x, e1, e2
     in      
     let hnf = hnf ~free in
       match e with
@@ -96,9 +120,9 @@ struct
 	       if free then S.Var x else error ("Unknown variable " ^ S.string_of_name x))
 	| (S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False) as e -> e
 	| S.Cut (x, i, p1, p2) ->
-	    let x', a = alpha x env in
+	    let x', p1', p2' = alpha2 x env p1 p2 in
 	    let env' = Env.extend x' (S.Var x') env in		  
-	      S.Cut (x', i, hnf env' (a p1), hnf env' (a p2))
+	      S.Cut (x', i, hnf env' p1', hnf env' p2')
 	| S.Binary (op, e1, e2) -> S.Binary (op, hnf env e1, hnf env e2)
 	| S.Unary (op, e) -> S.Unary (op, hnf env e)
 	| S.Power (e, k) -> S.Power (hnf env e, k)
@@ -111,14 +135,14 @@ struct
 	| S.Or lst -> S.Or (List.map (hnf env) lst)
 	| S.Tuple lst -> S.Tuple (List.map (hnf env) lst)
 	| S.Lambda (x, ty, e) -> 
-	  let x',a = alpha x env in 
-	    S.Lambda (x', ty, hnf (Env.extend x' (S.Var x') env) (a e))
+	  let x',e' = alpha1 x env e in 
+	    S.Lambda (x', ty, hnf (Env.extend x' (S.Var x') env) e')
 	| S.Exists (x, i, e) ->
-	  let x',a = alpha x env in 
-	    S.Exists (x', i, hnf (Env.extend x' (S.Var x') env) (a e))
+	  let x',e' = alpha1 x env e in 
+	    S.Exists (x', i, hnf (Env.extend x' (S.Var x') env) e')
 	| S.Forall (x, i, e) -> 
-	  let x',a = alpha x env in 
-	    S.Forall (x', i, hnf (Env.extend x' (S.Var x') env) (a e))
+	  let x',e' = alpha1 x env e in 
+	    S.Forall (x', i, hnf (Env.extend x' (S.Var x') env) e')
 	| S.App (e1, e2)  ->
 	    let e2' = hnf env e2 in
 	      (match hnf env e1 with
