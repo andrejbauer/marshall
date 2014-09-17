@@ -7,17 +7,18 @@ struct
   module P = Parser.Make(D)
   module L = Lexer.Make(D)
 
-  let usage = "Usage: eff [option] ... [file] ..."
+  let usage = "Usage: marshall [option] ... [file] ..."
   let interactive_shell = ref true
   let prelude = ref true
   let wrapper = ref (Some ["rlwrap"; "ledit"])
 
 let help_text = "Toplevel commands:
-#type <expr> ;;    print the type of <expr> without evaluating it
-#precision d ;;    set output precision to dyadic constant d
 #help ;;           print this help
+#precision d ;;    set output precision to dyadic constant d
 #quit ;;           exit Marshall
-#use \"<file>\" ;; evaluate <file>." ;;
+#use \"<file>\" ;; evaluate <file>.
+#trace <expr> ;;   trace the evaluation of an expression
+#hnf <expr> ;;     compute the head-normal form of an expression" ;;
 
   (** We look for prelude.asd _first_ next to the executable and _then_ in the relevant
       install directory. This makes it easier to experiment with prelude.asd because eff
