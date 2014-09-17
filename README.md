@@ -25,8 +25,11 @@ To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 3.12 a
 the [menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator.
 
 Both are available through standard packaging systems on Linux distributions, and
-on MacOS X via [macports](http://www.macports.org/). If you embark on compiling
-Ocaml on your own, consider [GODI](http://godi.camlcity.org/godi/index.html) instead.
+on MacOS X via [opam](http://opam.ocamlpro.com). On Windows you might get away with
+[Wodi](http://wodi.forge.ocamlcore.org) -- we wish you good luck.
+
+If you install the `rlwrap` or `ledit` command-line editing wrappers, Marshall will use
+them automatically in the interactive mode.
 
 ## Compilation
 
@@ -44,10 +47,9 @@ To install Marshall type
 
     make install
 
-## Command-line editing
-
-If you install the `rlwrap` or `ledit` command-line wrapper, Marshall will use them
-automatically.
+This will install the Marshall exectuable in `/usr/local/bin` unless you specified
+a different location with `configure`. You do not actually have to install Marshall
+to run it.
 
 ## Examples
 
