@@ -2,23 +2,22 @@
 ! Comments begin with ! and end with end of line.
 ! Definitions and exprssions must be separated by double semicolons
 
-forall x:[0,1], 0 < (x+0.1)*(x- 0.9)*(x- 1.1)
+forall x : [0, 1], 0 < (x + 0.1) * (x- 0.9) * (x - 1.1)
 ;;
-forall x:[0,1], 0 > (x+0.1)*(x- 0.1)*(x- 1.1)
+forall x : [0, 1], 0 > (x + 0.1) * (x- 0.1) * (x - 1.1)
 ;;
-exists x:[0,1], 0 > (x+0.1)*(x- 0.9)*(x- 1.1)
+exists x : [0, 1], 0 > (x + 0.1) * (x- 0.9) * (x - 1.1)
 ;;
-exists x:[0,1], 0 < (x+0.1)*(x- 0.1)*(x- 1.1)
-;;
-
-let a = 2 * 3^4 + 0.01 - 1.12e-1
+exists x : [0, 1], 0 < (x + 0.1) * (x- 0.1) * (x - 1.1)
 ;;
 
-! The identity function using cuts
+let some_arithmetic = 2 * 3^4 + 0.01 - 1.12e-1
+;;
+
+# The identity function using cuts
 let id = fun a : real => cut t left t < a right a < t
 ;;
 
-! The square root function
 let sqrt =
   fun a : real =>
     cut x 
@@ -28,15 +27,15 @@ let sqrt =
 ;;
 
 ! Square root of two
-let a = sqrt 2
+let sqrt_of_2 = sqrt 2
 ;;
 
 ! Compute the square of square root of 2
-a^2
+let square_of_sqrt_of_2 = a^2
 ;;
 
-! Square root of square root of 3
-let b = sqrt (sqrt 3)
+! Square root of square root of 81
+let sqrt_of_sqrt_of_81 = sqrt (sqrt 81)
 ;;
 
 ! Cube roots of numbers in [0,1] exists up to precision 0.01
@@ -67,7 +66,7 @@ let lg32 = fun x : real => lg16 (lg16 x) ;;
 let lg64 = fun x : real => lg32 (lg32 x) ;;
 
 ! Now compute lg64 0.1.
-let c = lg16 0.1 ;;
+let lg64_of_tenth = lg16 0.1 ;;
 
 
 ! Maximum of a function on the unit interval
@@ -80,10 +79,10 @@ let max =
 
 !! The next one is rather slow
 
-let u = max (fun x : real => x * (1 - x))
+let max_should_be_0.25 = max (fun x : real => x * (1 - x))
 ;;
 
-max sqrt ;;
-#precision 1e-8;;
+let max_sqrt_should_be_1 = max sqrt ;;
+#precision 1e-3;;
 
-let w = max (fun x:real => 0.00756*x - 0.0726*x^2 + 0.299667*x^3 - 0.5675*x^4 + 0.5*x^5 - 0.166667*x^6);;
+let max_6th_degree = max (fun x:real => 0.00756*x - 0.0726*x^2 + 0.299667*x^3 - 0.5675*x^4 + 0.5*x^5 - 0.166667*x^6);;
