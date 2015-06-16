@@ -103,7 +103,12 @@ instance Monad Staged where
 
 -- | The functor structure of 'Staged' is the same as that of the @Reader@ monad.
 instance Functor Staged where
-  fmap f x = Staged $ \s -> f (approx x s)
+    fmap f x = Staged $ \s -> f (approx x s)
+
+instance Applicative Staged where
+    pure a    = Staged $ \s -> a
+    (<*>) f x = Staged $ \s -> (approx f  s) (approx x s)
+    
 
 -- | 'Staged' is an instance of a completion.
 instance Completion Staged where

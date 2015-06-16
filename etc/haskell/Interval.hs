@@ -65,72 +65,72 @@ class ApproximateField q => IntervalDomain q  where
                                 then if negative d
                                      then lmul b d
                                      else lmul a d
-              	                else if negative c
-              	                     then if negative d 
-              	                          then lmul b c
-              	                          else min (lmul a d) (lmul b c)
-              	                     else if negative d
-              	                          then zero
-              	                          else lmul a d
-              	           else if negative b
-              	                then if negative c
-              	                     then if negative d
-              	                          then lmul b d
-              	                          else zero
-              	                     else if negative d
-              	                          then max (lmul a c) (lmul b d)
-              	                          else lmul a c
-              	           else if negative c
-              	                then lmul b c
-              	                else lmul a c),
-  	              upper = (if negative a
-  	                       then if negative b
-  	                            then if negative c
-  	                                 then umul a c
-  	                                 else umul b c
-                            	  else if negative c
-                            	       then if negative d
-                            	            then umul a c
-                            	            else max (umul a c) (umul b d)
-                            	       else if negative d
-                            	            then zero
-                            	            else umul b d
+                                else if negative c
+                                     then if negative d 
+                                          then lmul b c
+                                          else min (lmul a d) (lmul b c)
+                                     else if negative d
+                                          then zero
+                                          else lmul a d
+                           else if negative b
+                                then if negative c
+                                     then if negative d
+                                          then lmul b d
+                                          else zero
+                                     else if negative d
+                                          then max (lmul a c) (lmul b d)
+                                          else lmul a c
+                           else if negative c
+                                then lmul b c
+                                else lmul a c),
+                  upper = (if negative a
+                           then if negative b
+                                then if negative c
+                                     then umul a c
+                                     else umul b c
+                                else if negative c
+                                     then if negative d
+                                          then umul a c
+                                          else max (umul a c) (umul b d)
+                                     else if negative d
+                                          then zero
+                                          else umul b d
                            else if negative b
                                 then if negative c
                                      then if negative d
                                           then umul a d
                                           else zero
-                            	       else if negative d
-                            	            then min (umul a d) (umul b c)
-                            	            else umul b c
-                            	  else if negative d
-                            	       then umul a d
-                            	       else umul b d)}
+                                     else if negative d
+                                          then min (umul a d) (umul b c)
+                                          else umul b c
+                                else if negative d
+                                     then umul a d
+                                     else umul b d)}
 
   iinv s Interval{lower=a, upper=b} =
     let sgn q = compare q zero
         linv = app_inv s
         uinv = app_inv (anti s)
     in Interval { lower = (case (sgn a, sgn b) of
-                        	   (LT, LT) -> linv b
-                        	   (EQ, LT) -> linv b
-                        	   (GT, LT) -> positive_inf
-                        	   (LT, EQ) -> negative_inf
-                        	   (EQ, EQ) -> negative_inf
-                        	   (GT, EQ) -> positive_inf
-                        	   (LT, GT) -> negative_inf
-                        	   (EQ, GT) -> negative_inf
-                        	   (GT, GT) -> linv b),
+                             (LT, LT) -> linv b
+                             (EQ, LT) -> linv b
+                             (GT, LT) -> positive_inf
+                             (LT, EQ) -> negative_inf
+                             (EQ, EQ) -> negative_inf
+                             (GT, EQ) -> positive_inf
+                             (LT, GT) -> negative_inf
+                             (EQ, GT) -> negative_inf
+                             (GT, GT) -> linv b),
                   upper = (case (sgn a, sgn b) of
-                        	   (LT, LT) -> uinv a
-                        	   (EQ, LT) -> negative_inf
-                        	   (GT, LT) -> negative_inf
-                        	   (LT, EQ) -> positive_inf
-                        	   (EQ, EQ) -> positive_inf
-                        	   (GT, EQ) -> uinv a
-                        	   (LT, GT) -> positive_inf
-                        	   (EQ, GT) -> positive_inf
-                        	   (GT, GT) -> uinv a)}
+                             (LT, LT) -> uinv a
+                             (EQ, LT) -> negative_inf
+                             (GT, LT) -> negative_inf
+                             (LT, EQ) -> positive_inf
+                             (EQ, EQ) -> positive_inf
+                             (GT, EQ) -> uinv a
+                             (LT, GT) -> positive_inf
+                             (EQ, GT) -> positive_inf
+                             (GT, GT) -> uinv a)}
 
   idiv s a b = imul s a (iinv s b)
   
