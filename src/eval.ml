@@ -202,7 +202,7 @@ struct
 		      S.Cut (x, l, q1, q2)
 		  | `equal ->
 		      (* We found an exact value *)
-		    S.Dyadic a'
+		    S.Dyadic a''
 		  | `greater ->
 		      (* We have a backwards cut. Do nothing. Someone should think
 			 whether this is ok. It would be nice if cuts could be
