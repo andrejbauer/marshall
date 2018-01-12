@@ -127,7 +127,7 @@ struct
 	  | Interval i ->        (100, I.to_string_number i)
 	  | True | And [] ->     (100, "True")
 	  | False | Or [] ->     (100, "False")
-	  | Tuple lst ->         (100, "(" ^ (String.concat ", " (List.map (to_str 10) lst)) ^ ")")
+	  | Tuple lst ->         (100, "(" ^ (String.concat ", " (List.map (to_str 10) (List.rev lst))) ^ ")")
 	  | Proj (e, k) ->       (90, to_str 90 e ^ "#" ^ string_of_int k)
 	  | App (e1, e2) ->      (85, to_str 84 e1 ^ " " ^ to_str 85 e2)
 	  | Power (e, k) ->      (83, to_str 82 e ^ " ^ " ^ string_of_int k)
