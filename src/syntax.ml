@@ -107,7 +107,7 @@ struct
     let rec to_str n ty =
       let (m, str) =
 	match ty with
-	  | Ty_Sigma            -> (3, "sigma")
+	  | Ty_Sigma            -> (3, "prop")
 	  | Ty_Real             -> (3, "real")
 	  | Ty_Tuple lst        -> (2, String.concat "*" (List.map (to_str 2) lst))
 	  | Ty_Arrow (ty1, ty2) -> (1, to_str 1 ty1 ^ " -> " ^ to_str 0 ty2)
