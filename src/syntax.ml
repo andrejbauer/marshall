@@ -107,7 +107,7 @@ struct
     let rec to_str n ty =
       let (m, str) =
 	match ty with
-	  | Ty_Sigma            -> (3, "sigma")
+	  | Ty_Sigma            -> (3, "prop")
 	  | Ty_Real             -> (3, "real")
 	  | Ty_Tuple lst        -> (2, String.concat "*" (List.map (to_str 2) lst))
 	  | Ty_Arrow (ty1, ty2) -> (1, to_str 1 ty1 ^ " -> " ^ to_str 0 ty2)
@@ -116,7 +116,7 @@ struct
     in
       to_str (-1) ty
 
-  (** Convert a string to expression *)
+  (** Convert a expression to string *)
   let rec string_of_expr e =
     let rec to_str n e =
       let (m, str) =
@@ -145,7 +145,7 @@ struct
 	  | Let (x, e1, e2)  ->  (10, "let " ^ string_of_name x ^ " = " ^ to_str 10 e1 ^
 				    " in " ^ to_str 9 e2)
 	  | Lambda (x, t, e) ->  (10, "fun " ^ string_of_name x ^ " : " ^ string_of_type t ^
-				    " -> " ^ to_str 9 e)
+				    " => " ^ to_str 9 e)
 	  | Cut (x, i, p1, p2) -> (5, "cut " ^ string_of_name x ^ " : " ^
 				     I.to_string i ^
 				     " left " ^ to_str 5 p1 ^ " right " ^ to_str 5 p2)
