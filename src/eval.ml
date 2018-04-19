@@ -356,12 +356,12 @@ struct
 	| S.Dyadic _ | S.Interval _ | S.True | S.False | S.Lambda _ -> (e, e)
 	| S.Tuple lst -> 
 	    let lst1, lst2 =
-	      List.fold_left
-		(fun (lst1, lst2) e ->
+	      List.fold_right
+		(fun e (lst1, lst2) ->
 		   let v1, v2 = loop k p e in
 		     v1::lst1, v2::lst2)
-		([], [])
 		lst
+		([], [])
 	    in
 	      (S.Tuple lst1, S.Tuple lst2)
     in
