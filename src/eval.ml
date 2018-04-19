@@ -146,7 +146,9 @@ struct
 	| S.App (e1, e2)  ->
 	    let e2' = hnf env e2 in
 	      (match hnf env e1 with
-		 | S.Lambda (x, ty, e) -> hnf (Env.extend x e2' env) e
+		 | S.Lambda (x, ty, e) -> 
+                     let x',e' = alpha1 x env e in
+                     hnf (Env.extend x' e2' env) e'
 		 | e1' -> S.App (e1', e2'))
 	| S.Let (x, e1, e2) -> 
 	    let e1' = hnf env e1 in
