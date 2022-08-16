@@ -45,11 +45,6 @@ let help_text = "Toplevel commands:
     ("--no-wrapper",
      Arg.Unit (fun () -> wrapper := None),
      " Do not use a command-line wrapper");
-    ("-v",
-     Arg.Unit (fun () ->
-       print_endline ("Marshall " ^ Version.version ^ "(" ^ Sys.os_type ^ ")") ;
-       exit 0),
-     " Print version information and exit");
     ("-n",
      Arg.Clear interactive_shell,
      " Do not run the interactive toplevel");
@@ -124,7 +119,7 @@ let help_text = "Toplevel commands:
       | "Win32" -> "Ctrl-Z"
       | _ -> "EOF"
     in
-      print_endline ("Marshall " ^ Version.version);
+      print_endline "Marshall (https://github.com/andrejbauer/marshall)";
       print_endline ("[Type " ^ eof ^ " to exit or #help;; for help.]");
       try
         let ctxenv = ref ctxenv in
