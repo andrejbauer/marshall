@@ -1,4 +1,4 @@
-(* Fancy printing of expressions and errors. 
+(* Fancy printing of expressions and errors.
    At the moment we just use the old routines for converting to strings. *)
 
 let fprintf = Format.fprintf
@@ -19,7 +19,7 @@ let position pos ppf =
   match pos with
   | Common.Nowhere ->
       Format.fprintf ppf "unknown position"
-  | Common.Position (begin_pos, end_pos) ->
+  | Common.Position (begin_pos, _) ->
       let begin_char = begin_pos.Lexing.pos_cnum - begin_pos.Lexing.pos_bol + 1 in
       let begin_line = begin_pos.Lexing.pos_lnum in
       let filename = begin_pos.Lexing.pos_fname in

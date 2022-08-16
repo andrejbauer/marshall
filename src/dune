@@ -1,0 +1,12 @@
+(executable
+ (public_name marshall)
+ (name marshall)
+ (libraries unix num)
+ (promote
+    (until-clean)
+    (into ..))
+)
+
+(ocamllex lexer)
+
+(menhir (modules parser))

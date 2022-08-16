@@ -20,14 +20,11 @@ let help_text = "Toplevel commands:
 #trace <expr> ;;   trace the evaluation of an expression
 #hnf <expr> ;;     compute the head-normal form of an expression" ;;
 
-  (** We look for prelude.asd _first_ next to the executable and _then_ in the relevant
-      install directory. This makes it easier to experiment with prelude.asd because eff
-      will work straight from the build directory. We are probably creating a security hole,
-      but we'll deal with that when eff actually gets used by more than a dozen people. *)
+  (** Where to look for the prelude file. *)
   let prelude_file =
     ref (if Sys.file_exists "prelude.asd"
-         then Filename.concat (Filename.dirname Sys.argv.(0)) "prelude.asd"
-         else Filename.concat Version.marshalldir "prelude.asd")
+         then "prelude.asd"
+         else Filename.concat (Filename.dirname Sys.argv.(0)) "prelude.asd")
 
   (** A list of files to be loaded and run. *)
   let files = ref []
@@ -73,7 +70,7 @@ let help_text = "Toplevel commands:
     with
       | P.Error ->
           Error.syntax ~pos:(L.position_of_lex lex) ""
-      | Failure "lexing: empty token" ->
+      | Failure _ ->
           Error.syntax ~pos:(L.position_of_lex lex) "unrecognised symbol."
 
   let initial_ctxenv = ([], [])
@@ -85,7 +82,7 @@ let help_text = "Toplevel commands:
     | E.S.Expr (e, trace) ->
 	(try
 	   let ty = TC.type_of ctx e in
-	   let v1, v2 = E.eval trace env e in
+	   let _, v2 = E.eval trace env e in
 	     print_endline ("- : " ^ E.S.string_of_type ty ^ " = " ^ E.S.string_of_expr v2) ;
 	     (ctx, env)
 	 with error -> (Message.report error; (ctx, env)))
@@ -108,7 +105,7 @@ let help_text = "Toplevel commands:
     | E.S.Help -> print_endline help_text ; (ctx, env)
     | E.S.Quit -> raise End_of_file
     | E.S.Use fn -> use_file (ctx, env) (fn, interactive)
-	
+
   (** [exec_cmds interactive (ctx,env) cmds] executes the list of commands [cmds] in
       context [ctx] and environment [env], and returns the new
       environment. *)

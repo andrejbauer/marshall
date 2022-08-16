@@ -20,7 +20,7 @@ struct
   (* \subsection{Basic mainpulation} *)
 
   (* [make l u] constructs an interal from two fiven dyadics. *)
-  let make l u = { lower = lazy_from_val l; upper = lazy_from_val u } 
+  let make l u = { lower = Lazy.from_val l; upper = Lazy.from_val u }
 
   (* [lower i] computes the lower endpoint. *)
   let lower i = force_val i.lower
@@ -89,7 +89,7 @@ struct
     let dnuor = D.anti round in
       { lower = lazy (D.neg ~prec ~round (upper i)) ;
 	upper = lazy (D.neg ~prec ~round:dnuor (lower i)) }
-	
+
   (* Kaucher multiplication of intervals is given by the following table.
 
      \begin{center}
@@ -191,7 +191,7 @@ struct
 		  else (* non-negative [b] *)
 		    upow b k
 	    ) }
-	    
+
 
   let inv ~prec ~round i =
     let a = lower i in
@@ -267,7 +267,7 @@ struct
      reasonable thing. *)
 
   let thirds ~prec k i =
-    let i1, i2 = split prec k i in
-      midpoint prec k i1, midpoint prec k i2
+    let i1, i2 = split ~prec k i in
+      midpoint ~prec k i1, midpoint ~prec k i2
 
 end;;

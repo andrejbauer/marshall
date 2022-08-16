@@ -32,7 +32,7 @@ let string_of_position {pos_fname=fn; pos_lnum=ln; pos_bol=bol; pos_cnum=cn} =
 
 exception SyntaxError of string
 
-let syntax_error {lex_curr_p=pos} = raise (SyntaxError (string_of_position pos))
+let syntax_error {lex_curr_p=pos; _} = raise (SyntaxError (string_of_position pos))
 
 (* \subsection{Type checking errors} *)
 

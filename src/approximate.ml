@@ -133,7 +133,7 @@ struct
 	| S.And lst -> fold_and approx lst
 	| S.Or lst -> fold_or approx lst
 	| S.Exists (x, s, e) ->
-	    let m = S.Dyadic (I.midpoint prec 1 s) in
+	    let m = S.Dyadic (I.midpoint ~prec 1 s) in
 	      lower prec (Env.extend x m env) e
 	| S.Forall (x, i, e) ->
 	    lower prec (Env.extend x (S.Interval i) env) e
@@ -184,7 +184,7 @@ struct
 	    let j = I.flip i in
 	      upper prec (Env.extend x (S.Interval j) env) e
 	| S.Forall (x, i, e) ->
-	    let m = S.Dyadic (I.midpoint prec 1 i) in
+	    let m = S.Dyadic (I.midpoint ~prec 1 i) in
 	      upper prec (Env.extend x m env) e
 	| S.Let (x, e1, e2) ->
 	    upper prec (Env.extend x e1 env) e2

@@ -8,17 +8,17 @@ struct
   type name =
     | Ident of string
     | Gensym of string * int
-	
+
   (** Generate a fresh variable name. *)
   let fresh_name =
     let k = ref 0 in
       fun s -> incr k; Gensym (s,!k)
-	
+
   (** Convert a name to a string. *)
   let string_of_name = function
     | Ident str -> str
     | Gensym (s,k) -> s ^ string_of_int k
-	
+
   (** In Marshall we have base types for reals and propositions, product types and
       function types. Function types are a mirage because all $\lambda$-abstractions get
       $\beta$-reduced away. *)
@@ -117,7 +117,7 @@ struct
       to_str (-1) ty
 
   (** Convert a expression to string *)
-  let rec string_of_expr e =
+  let string_of_expr e =
     let rec to_str n e =
       let (m, str) =
 	match e with

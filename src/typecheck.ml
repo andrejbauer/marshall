@@ -37,7 +37,7 @@ struct
     | Unary (_, e) ->
 	check ctx Ty_Real e ;
 	Ty_Real
-    | Power (e, k) ->
+    | Power (e, _) ->
 	check ctx Ty_Real e ;
 	Ty_Real
     | True -> Ty_Sigma
@@ -63,9 +63,11 @@ struct
     | Proj (e, k) ->
 	(match type_of ctx e with
 	   | Ty_Tuple lst as ty ->
-	       (try List.nth lst k with Failure "nth" ->
-		  error ("Expected at least " ^ string_of_int k ^
-			   " components but got " ^ string_of_type ty))
+	       (match List.nth_opt lst k with
+                  | Some x -> x
+                  | None ->
+		     error ("Expected at least " ^ string_of_int k ^
+                            " components but got " ^ string_of_type ty))
 	   | ty -> error ("Expected a tuple but got " ^ string_of_type ty)
 	)
     | Lambda (x, ty, e) ->
@@ -77,7 +79,7 @@ struct
 
   (* Does [e] have type [ty] in context [ctx]? *)
   and check ctx ty e =
-    let ty' = type_of ctx e in 
+    let ty' = type_of ctx e in
       if ty <> ty' then
 	error (string_of_type ty ^ " expected but got " ^ string_of_type ty')
 end;;

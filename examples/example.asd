@@ -1,6 +1,6 @@
 ! This is a sample Marshall program.
 ! Comments begin with ! and end with end of line.
-! Definitions and exprssions must be separated by double semicolons
+! Definitions and expressions must be separated by double semicolons
 
 forall x : [0, 1], 0 < (x + 0.1) * (x- 0.9) * (x - 1.1)
 ;;
@@ -14,13 +14,13 @@ exists x : [0, 1], 0 < (x + 0.1) * (x- 0.1) * (x - 1.1)
 let some_arithmetic = 2 * 3^4 + 0.01 - 1.12e-1
 ;;
 
-# The identity function using cuts
+! The identity function using cuts
 let id = fun a : real => cut t left t < a right a < t
 ;;
 
 let sqrt =
   fun a : real =>
-    cut x 
+    cut x
       left  (x < 0 \/ x * x < a)
 
       right (x > 0 /\ x * x > a)
@@ -79,7 +79,7 @@ let max =
 
 !! The next one is rather slow
 
-let max_should_be_0.25 = max (fun x : real => x * (1 - x))
+let max_should_be_quarter = max (fun x : real => x * (1 - x))
 ;;
 
 let max_sqrt_should_be_1 = max sqrt ;;

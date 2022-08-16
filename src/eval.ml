@@ -67,23 +67,23 @@ struct
     let rec free_in y e = match e with
 	| S.Var x -> x = y
 	| S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False -> false
-	| S.Cut (x, i, p1, p2) -> x<>y && (free_in y p1 || free_in y p2)
-	| S.Binary (op, e1, e2) -> free_in y e1 || free_in y e2
-	| S.Unary (op, e) -> free_in y e 
-	| S.Power (e, k) -> free_in y e
+	| S.Cut (x, _, p1, p2) -> x <> y && (free_in y p1 || free_in y p2)
+	| S.Binary (_, e1, e2) -> free_in y e1 || free_in y e2
+	| S.Unary (_, e) -> free_in y e
+	| S.Power (e, _) -> free_in y e
 	| S.Proj (e, k) ->
-	    (match  e with
+	    (match e with
 	       | S.Tuple _ as e' -> free_in y (A.proj e' k)
-	       | e' -> free_in y e)
+	       | _ -> free_in y e)
 	| S.Less (e1, e2) -> free_in y e1 || free_in y e2
 	| S.And lst -> List.fold_left (fun p e -> p || free_in y e) false lst
 	| S.Or lst -> List.fold_left (fun p e -> p || free_in y e) false lst
 	| S.Tuple lst -> List.fold_left (fun p e -> p || free_in y e) false lst
-	| S.Lambda (x, ty, e) -> x<>y && (free_in y e)
-	| S.Exists (x, i, e) -> x<>y && (free_in y e)
-	| S.Forall (x, i, e) -> x<>y && (free_in y e)
+	| S.Lambda (x, _, e) -> x <> y && (free_in y e)
+	| S.Exists (x, _, e) -> x <> y && (free_in y e)
+	| S.Forall (x, _, e) -> x <> y && (free_in y e)
 	| S.App (e1, e2)  -> free_in y e1 || free_in y e2
-	| S.Let (x, e1, e2) -> free_in y e1 || (x<>y && free_in y e2)
+	| S.Let (x, e1, e2) -> free_in y e1 || (x <> y && free_in y e2)
 
     let rec free_in_env x env e =
       match env with
@@ -96,21 +96,21 @@ struct
      repeat subexpressions, but computation of derivatives cannot handle
      general applications and local definitions. *)
 
-  let rec hnf ?(free=false) env e =        
+  let rec hnf ?(free=false) env e =
     let alpha1 x env e =
-      if free_in_env x env e then 
+      if free_in_env x env e then
 	let x' = S.fresh_name (S.string_of_name x) in
 	  x', hnf ~free:true (Env.extend x (S.Var x') []) e
       else
 	 x, e
-    in      
+    in
     let alpha2 x env e1 e2 =
-      if free_in_env x env e1 || free_in_env x env e2 then 
+      if free_in_env x env e1 || free_in_env x env e2 then
 	let x' = S.fresh_name (S.string_of_name x) in
 	  x', hnf ~free:true (Env.extend x (S.Var x') []) e1, hnf ~free:true (Env.extend x (S.Var x') []) e2
       else
 	 x, e1, e2
-    in      
+    in
     let hnf = hnf ~free in
       match e with
 	| S.Var x ->
@@ -121,12 +121,12 @@ struct
 	| (S.RealVar _ | S.Dyadic _ | S.Interval _ | S.True | S.False) as e -> e
 	| S.Cut (x, i, p1, p2) ->
 	    let x', p1', p2' = alpha2 x env p1 p2 in
-	    let env' = Env.extend x' (S.Var x') env in		  
+	    let env' = Env.extend x' (S.Var x') env in
 	      S.Cut (x', i, hnf env' p1', hnf env' p2')
 	| S.Binary (op, e1, e2) -> S.Binary (op, hnf env e1, hnf env e2)
 	| S.Unary (op, e) -> S.Unary (op, hnf env e)
 	| S.Power (e, k) -> S.Power (hnf env e, k)
-	| S.Proj (e, k) -> 
+	| S.Proj (e, k) ->
 	    (match hnf env e with
 	       | S.Tuple _ as e' -> A.proj e' k
 	       | e' -> S.Proj (e', k))
@@ -134,23 +134,23 @@ struct
 	| S.And lst -> S.And (List.map (hnf env) lst)
 	| S.Or lst -> S.Or (List.map (hnf env) lst)
 	| S.Tuple lst -> S.Tuple (List.map (hnf env) lst)
-	| S.Lambda (x, ty, e) -> 
-	  let x',e' = alpha1 x env e in 
+	| S.Lambda (x, ty, e) ->
+	  let x',e' = alpha1 x env e in
 	    S.Lambda (x', ty, hnf (Env.extend x' (S.Var x') env) e')
 	| S.Exists (x, i, e) ->
-	  let x',e' = alpha1 x env e in 
+	  let x',e' = alpha1 x env e in
 	    S.Exists (x', i, hnf (Env.extend x' (S.Var x') env) e')
-	| S.Forall (x, i, e) -> 
-	  let x',e' = alpha1 x env e in 
+	| S.Forall (x, i, e) ->
+	  let x',e' = alpha1 x env e in
 	    S.Forall (x', i, hnf (Env.extend x' (S.Var x') env) e')
 	| S.App (e1, e2)  ->
 	    let e2' = hnf env e2 in
 	      (match hnf env e1 with
-		 | S.Lambda (x, ty, e) -> 
+		 | S.Lambda (x, _, e) ->
                      let x',e' = alpha1 x env e in
                      hnf (Env.extend x' e2' env) e'
 		 | e1' -> S.App (e1', e2'))
-	| S.Let (x, e1, e2) -> 
+	| S.Let (x, e1, e2) ->
 	    let e1' = hnf env e1 in
 	      hnf (Env.extend x e1' env) e2
 
@@ -183,10 +183,10 @@ struct
 	      let a = I.lower i in
 	      let b = I.upper i in
 		(* Bisection *)
-	      let m1, m2 = I.thirds prec k i in
+	      let m1, m2 = I.thirds ~prec k i in
 	      let a' = (if A.lower prec (Env.extend x (S.Dyadic m1) env) p1 = S.True then m1 else a) in
 	      let b' = (if A.lower prec (Env.extend x (S.Dyadic m2) env) p2 = S.True then m2 else b) in
-	    	
+
 	      let j = I.make a' b' in
 	      	(* Newton's method *)
 	      let (r1, r2) = N.estimate k prec env x j p1 in
@@ -196,7 +196,7 @@ struct
 	      match D.cmp a'' b'' with
 		  | `less ->
 		      (* The new interval *)
-		    let l = I.make a'' b'' in	      	    
+		    let l = I.make a'' b'' in
 		    let env' = Env.extend x (S.RealVar (x, l)) env in
 		    let q1 = refine k prec env' p1 in
 		    let q2 = refine k prec env' p2 in
@@ -231,9 +231,9 @@ struct
                   let lst = R.to_closed_intervals (R.closure (R.intersection (R.of_interval i) (R.complement a1))) in
 		      A.fold_or (fun i -> make_exists x i q) lst
                 else
-		  let i1,i2 = I.split prec 1 i in  
+		  let i1,i2 = I.split prec 1 i in
 	              A.fold_or (fun i -> make_exists x i q) [i1; i2])*)
-	      let i1, i2 = I.split prec 1 i in
+	      let i1, i2 = I.split ~prec 1 i in
 		(* Newton's method *)
 	      let (a1, b1) = N.estimate k prec env x i1 q in
 
@@ -261,7 +261,7 @@ struct
 			    (R.complement a2)))
 		    in
 		      A.fold_or (fun i -> make_exists x i q) (lst1 @ lst2)
-		
+
 	      (*A.fold_or (fun i -> make_exists x i q) [i1; i2]*)
 
 	  | S.Forall (x, i, p) ->
@@ -278,8 +278,8 @@ struct
 		else
 	       	  let i1, i2 = I.split prec 1 i in
               	    A.fold_and (fun i -> make_forall x i q) [i1; i2])*)
-	      
-	       let i1, i2 = I.split prec 1 i in
+
+	       let i1, i2 = I.split ~prec 1 i in
 		(* Newton's method *)
               let (a1, b1) = N.estimate k prec env x i1 q in
 (*	      print_endline ("Forall: " ^ (S.string_of_name x) ^ ":" ^ (I.to_string i) ^ ":" ^ (R.to_string a1) ^ (R.to_string b1));*)
@@ -337,9 +337,9 @@ struct
 	  print_endline ("--------------------------------------------------\n" ^
 			   "Iteration: " ^ string_of_int k ^ "\n" ^
 			   S.string_of_expr e ^ "\n" ^
-			   "Press Enter to continue " 
+			   "Press Enter to continue "
 			) ;
-	  ignore (read_line ())	  
+	  ignore (read_line ())
 	end ;
       match e with
 	| S.Var _ | S.RealVar _
@@ -349,14 +349,14 @@ struct
 	| S.Binary _ | S.Unary _ | S.Power _ | S.Cut _ ->
 	    (match A.lower p env e with
 	       | S.Interval i ->
-		   let w = (I.width 10 D.up i) in
+		   let w = (I.width ~prec:10 ~round:D.up i) in
 		     if D.lt w !target_precision then
 		       (e, S.Interval i)
 		     else
 		       loop (k+1) (make_prec (p+3) (I.make D.zero !target_precision)) (refine k p env e)
 	       | _ -> assert false)
 	| S.Dyadic _ | S.Interval _ | S.True | S.False | S.Lambda _ -> (e, e)
-	| S.Tuple lst -> 
+	| S.Tuple lst ->
 	    let lst1, lst2 =
 	      List.fold_right
 		(fun e (lst1, lst2) ->
@@ -369,4 +369,3 @@ struct
     in
       loop 1 32 (hnf env e)
 end;;
-

@@ -12,7 +12,7 @@ sig
   val one : t
   val negative_one : t
   val two : t
-  val half : ?prec:int -> round:rounding_mode -> t
+  val half : prec:int -> round:rounding_mode -> t
   val cmp : t -> t -> [> `equal | `greater | `less ]
   val min : t -> t -> t
   val max : t -> t -> t
