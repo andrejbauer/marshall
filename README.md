@@ -22,16 +22,15 @@ See `example.asd` for more examples.
 ## Prerequisites
 
 To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 4.12 or later,
-the OCaml [dune](https://dune.build) build system, and the
-[menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator. The best way to
-obtain these is to use the OCaml package manager [opam](http://opam.ocamlpro.com). Once
+the OCaml [dune](https://dune.build) build system, the
+[menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator, and the large number library [num](https://github.com/ocaml/num/). The best way to
+obtain these is to use the OCaml package manager [opam](https://opam.ocaml.org). Once
 you have got OPAM going, run
 
-    opam install dune menhir
+    opam install dune menhir num
 
 Optionally, you may install the `rlwrap` or `ledit` command-line editing wrappers.
-Marshall will use
-them automatically in the interactive mode.
+Marshall will use them automatically in the interactive mode.
 
 ## Compilation
 
