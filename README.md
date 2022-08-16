@@ -21,35 +21,25 @@ See `example.asd` for more examples.
 
 ## Prerequisites
 
-To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 3.12 and
-the [menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator.
+To compile Marshall you will need [Ocaml](http://www.ocaml.org/), version 4.12 or later,
+the OCaml [dune](https://dune.build) build system, and the
+[menhir](http://gallium.inria.fr/~fpottier/menhir/) parser generator. The best way to
+obtain these is to use the OCaml package manager [opam](http://opam.ocamlpro.com). Once
+you have got OPAM going, run
 
-Both are available through standard packaging systems on Linux distributions, and
-on MacOS X via [opam](http://opam.ocamlpro.com). On Windows you might get away with
-[Wodi](http://wodi.forge.ocamlcore.org) -- we wish you good luck.
+    opam install dune menhir
 
-If you install the `rlwrap` or `ledit` command-line editing wrappers, Marshall will use
+Optionally, you may install the `rlwrap` or `ledit` command-line editing wrappers.
+Marshall will use
 them automatically in the interactive mode.
 
 ## Compilation
 
 Compilation should run smoothly or not at all. Type
 
-    ./configure
-    make
+    dune build
 
-The `configure` command accepts standard autoconf options, see `configure --help`.
-The compiled executable is called `marshall` and you can run it in place.
-
-## Installation
-
-To install Marshall type
-
-    make install
-
-This will install the Marshall exectuable in `/usr/local/bin` unless you specified
-a different location with `configure`. You do not actually have to install Marshall
-to run it.
+If all goes well, an executable `marshall.exe` will appear in the main directory.
 
 ## Examples
 
@@ -65,36 +55,10 @@ of Ljubljana. Of particular help might be the notes `etc/haskell/notes.tex`.
 
 ## Compiling with MPFR
 
-In theory Marshall can be compiled with the MPFR library, but this requires extra work.
-At the moment MPFR is not used by autoconf. Here are some obsolete instruction that may
-or may not work.
+In theory Marshall can be compiled with the MPFR library, but the current configuration
+is not set up to use it. If you manage to do it in a nice way, please contact us.
+Here are some obsolete instruction that may or may not work:
 
-0. You need the prerequisites listed above.
-
-1. You need the usual building tools, such as subversion, make, and gcc. Under Microsoft
-Windows you can get those by installing [Cygwin](http://www.cygwin.com/).
-
-3. You need [camlidl](http://caml.inria.fr/camlidl/), which is available in GODI
-as well.
-
-4. You need [MPFR](http://www.mpfr.org/), or through your package manager.
-
-5. You need [mlgmpidl](http://mlxxxidl.gforge.inria.fr/mlgmpidl/index.html). You should get
-the latest subversion version which includes some patches that we
-submitted. Check out mlgmpidl from subversion:
-
-    svn checkout svn://scm.gforge.inria.fr/svn/mlxxxidl/mlgmpidl
-
-(Just in case, this repostitory includes the patch in `mpfr.idl.patch`. But you
-should not have to apply it if you get mlgmpidl from subversion.) Proceed with
-installation of mlgmpidl.
-
-6. TODO How to "register" it with ocamlfind?
-
-7. To compile the bytecode version with Mpfr library, type in the `src` subdirectory
-
-    ocamlbuild -use-ocamlfind marshall_mpfr.byte
-
-To compile bytecode, native, and the documentation, type in the `src` subdirectory
-
-    ocamlbuild -use-ocamlfind all.otarget
+1. Install `mpfr` through OPAM, as well as its dependencies.
+2. Add `mpfr` as a dependency to `dune-project`.
+3. Change `src/main.ml` so that it uses the MPFR interval arithmetic instead of `Big_num`.

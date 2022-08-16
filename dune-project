@@ -19,7 +19,6 @@
  (depends
     ocaml
     dune
-    menhir
-    mpfr)
+    menhir)
 )
 
